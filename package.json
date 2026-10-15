@@ -1,0 +1,11 @@
+{
+  "name": "csv-import-doctor",
+  "private": true,
+  "workspaces": ["packages/csv-doctor-core"],
+  "scripts": {
+    "lint": "npm run lint --workspace @csv-import-doctor/core",
+    "typecheck": "npm run typecheck --workspace @csv-import-doctor/core",
+    "test": "npm run test --workspace @csv-import-doctor/core",
+    "build": "npm run build --workspace @csv-import-doctor/core"
+  }
+}
