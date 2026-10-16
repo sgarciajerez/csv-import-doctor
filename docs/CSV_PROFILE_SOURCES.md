@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.44`
+Profile version: `shopify-product-csv-2026-10-16.45`
+
+Changes in `.45`: recognize explicit `Video URL`, `Product video URL`, `3D model URL`, and `Product 3D model URL` headers and warn that Shopify's product CSV import supports image URLs, not videos or 3D models. Preserve the columns and values. If a recognized media header has incorrect casing or surrounding whitespace, also keep the existing header diagnostic.
 
 Changes in `.44`: warn when a nonblank `Compare At Price / [Market]` value has no corresponding nonblank `Price / [Market]` on that row, including when the matching market price column is absent. This follows Shopify's statement that a fixed market compare-at price requires a fixed market price. The advisory is row-specific, preserves both values, and does not claim import failure.
 
@@ -59,6 +61,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - For creating products, `Title` is the only always-required column; adding variants also requires `URL handle`.
 - For updates, `URL handle` and `Title` are required. Variant data can depend on `Option1 name` and `Option1 value`.
 - Shopify says a fixed `Compare At Price / [Market]` requires a fixed `Price / [Market]`. The profile warns when the compare-at value is supplied while its corresponding market price is blank or absent, preserves both values, and links to the Markets catalog guidance. It does not infer currency values or convert prices.
+- Shopify product CSV supports image URLs as media input; video and 3D model uploads use Shopify admin instead. For explicit video or 3D model URL headers, the profile issues a sourced warning and preserves every value. It does not flag custom metafield headers or claim a particular importer result.
 - Shopify says valid URL handles can contain letters, dashes, and numbers, and cannot contain spaces. The app warns on whitespace and, separately, on punctuation or symbols outside Unicode letters, numbers, and hyphens. Both are advisories only; all values remain unchanged.
 - Shopify limits each product to 250 tags, represented as comma-separated values in the `Tags` cell. The app warns above 250 non-empty entries on product-start rows and preserves the original cell.
 - Shopify recommends avoiding accented characters and symbols in tags. The app reports accented Latin letters separately and gives an informational recommendation for punctuation and Unicode symbols other than hyphens; it does not classify them as invalid or propose changing tag text.

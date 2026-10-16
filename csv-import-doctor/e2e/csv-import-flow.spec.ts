@@ -257,6 +257,15 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     'https://help.shopify.com/en/manual/markets/customizations/catalogs',
   );
 
+  const unsupportedMediaColumns = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-unsupported-media-columns.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-unsupported-media-columns.csv',
+    mimeType: 'text/csv',
+    buffer: unsupportedMediaColumns,
+  });
+  await expect(app.locator('body')).toContainText('Shopify product CSV does not import video or 3D media from the "Video URL" column.');
+  await expect(app.locator('body')).toContainText('Shopify product CSV does not import video or 3D media from the "3D model URL" column.');
+
   await app.getByLabel('Tipo de importación').selectOption('update');
   await expect(app.getByText(/If you enable Shopify overwrite/)).toBeVisible();
 

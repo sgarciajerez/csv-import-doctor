@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.44';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.45';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -54,6 +54,7 @@ const RECOMMENDATION_RULES = new Set([
   'unsupported-product-option-column',
   'product-option-name-missing-value',
   'market-compare-at-requires-fixed-price',
+  'unsupported-product-media-column',
 ]);
 const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'URL handle': ['Handle'],
@@ -146,6 +147,12 @@ const STATIC_PRODUCT_HEADERS = new Set([
   ...Object.keys(LEGACY_HEADER_ALIASES), ...Object.values(LEGACY_HEADER_ALIASES).flat(),
 ]);
 const NORMALIZED_STATIC_PRODUCT_HEADERS = new Set([...STATIC_PRODUCT_HEADERS].map((header) => header.toLocaleLowerCase()));
+const UNSUPPORTED_PRODUCT_MEDIA_HEADERS = new Set([
+  'Video URL', 'Product video URL', '3D model URL', 'Product 3D model URL',
+]);
+const NORMALIZED_UNSUPPORTED_PRODUCT_MEDIA_HEADERS = new Set(
+  [...UNSUPPORTED_PRODUCT_MEDIA_HEADERS].map((header) => header.toLocaleLowerCase()),
+);
 
 const PRODUCT_DATA_HEADERS = new Set([
   'description', 'body (html)', 'vendor', 'product category', 'type', 'tags',
@@ -187,7 +194,12 @@ function hasKnownDynamicProductHeaderCaseInsensitively(header: string): boolean 
   return /^(included|price|compare at price|compare-at price) \/ .+$/.test(normalized)
     || normalized.startsWith('google shopping /')
     || normalized.startsWith('product.metafields.')
-    || normalized.includes('(product.metafields.');
+    || normalized.includes('(product.metafields.')
+    || NORMALIZED_UNSUPPORTED_PRODUCT_MEDIA_HEADERS.has(normalized);
+}
+
+function isUnsupportedProductMediaHeader(header: string): boolean {
+  return NORMALIZED_UNSUPPORTED_PRODUCT_MEDIA_HEADERS.has(header.trim().toLocaleLowerCase());
 }
 
 function differsByOneEdit(left: string, right: string): boolean {
@@ -458,6 +470,18 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   csv.headers.forEach((header) => {
     const trimmed = header.trim();
     if (!trimmed || isVariantMetafieldHeader(header)) return;
+    if (isUnsupportedProductMediaHeader(header)) {
+      issues.push(makeIssue(
+        'unsupported-product-media-column',
+        'warning',
+        `Shopify product CSV does not import video or 3D media from the "${trimmed}" column.`,
+        1,
+        header,
+        'Shopify documents product image URLs as the supported media in product CSV files; videos and 3D models are not supported by this import format. Upload those media through Shopify admin instead. The column and all values are preserved.',
+        PRODUCT_CSV_SOURCE,
+      ));
+      if (UNSUPPORTED_PRODUCT_MEDIA_HEADERS.has(header)) return;
+    }
     const unsupportedOptionHeader = /^Option(\d+) (?:name|value|LinkedTo)$/i.exec(trimmed);
     if (unsupportedOptionHeader && Number(unsupportedOptionHeader[1]) > 3) {
       issues.push(makeIssue(

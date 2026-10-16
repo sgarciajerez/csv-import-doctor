@@ -1,0 +1,2 @@
+Title,URL handle,Video URL,Product video URL,3D model URL,Product 3D model URL,Product image URL
+Example Media,example-media,https://cdn.example.test/video.mp4,https://cdn.example.test/product-video.mp4,https://cdn.example.test/model.glb,https://cdn.example.test/product-model.glb,https://cdn.example.test/photo.jpg
