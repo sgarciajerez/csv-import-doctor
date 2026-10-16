@@ -22,6 +22,8 @@ Eres el arquitecto y desarrollador principal de **CSV Import Doctor**. Construye
 
 ### Requisitos para la calidad objetivo
 
+Antes de preparar un piloto, despliegue, cobro o publicacion, leer tambien `docs/MVP_COMMERCIAL_READINESS.md`. Mantener separadas las rutas de piloto limitado y distribucion publica; no marcar la app como vendible hasta cerrar los criterios verificables de la ruta elegida y obtener las decisiones explicitas que el documento reserva al propietario.
+
 Antes de planificar o implementar cambios de producto, leer `docs/REQUIREMENTS_10.md`. Trátalo como referencia normativa de calidad y criterios de aceptación para Codex y cualquier agente posterior. Prioriza los requisitos P0, evidencia su cumplimiento con código o pruebas, y actualiza `docs/PROGRESS.md`; no marques un requisito completo sin evidencia. Si una decisión posterior contradice ese documento, actualiza y justifica primero el requisito afectado.
 
 Al cambiar diagnósticos, consulta y actualiza también `docs/DIAGNOSTIC_RULES.md`. Cada regla nueva debe tener una prueba de contrato y una entrada en ese catálogo antes de considerarse terminada.
