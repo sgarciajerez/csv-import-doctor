@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.63';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.64';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_MEDIA_SOURCE = 'https://help.shopify.com/en/manual/products/product-media/add-media';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
@@ -13,6 +13,7 @@ const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-l
 const MAX_SHOPIFY_PRODUCT_CSV_BYTES = 15_000_000;
 const MAX_SHOPIFY_PRODUCT_TAGS = 250;
 const MAX_SHOPIFY_BARCODES_PER_VARIANT = 20;
+const SHOPIFY_BARCODE_TYPES = new Set(['gtin', 'upc', 'ean', 'isbn', 'asin', 'custom']);
 const MAX_SHOPIFY_COLLECTION_LENGTH = 255;
 const MAX_PRODUCT_IMAGES = 250;
 const UNIT_PRICE_HEADERS = [
@@ -60,6 +61,7 @@ const RECOMMENDATION_RULES = new Set([
   'product-handle-contains-spaces',
   'product-tag-count-exceeds-limit',
   'variant-barcode-count-exceeds-limit',
+  'duplicate-barcode-value',
   'collection-name-exceeds-limit',
   'product-image-count-exceeds-limit',
   'image-url-not-public-https',
@@ -180,27 +182,56 @@ function containsDiscouragedTagSymbol(value: string): boolean {
   return [...value].some((character) => character !== '-' && /[\p{P}\p{S}]/u.test(character));
 }
 
-function countBarcodeEntries(value: string): number {
-  let entries = 0;
-  let hasValue = false;
+function parseBarcodeEntries(value: string): Array<{ value: string; firstUnescapedColon?: number }> {
+  const entries: Array<{ value: string; firstUnescapedColon?: number }> = [];
+  let current = '';
+  let firstUnescapedColon: number | undefined;
   let escaped = false;
 
   for (const character of value) {
     if (escaped) {
-      hasValue = true;
+      current += character;
       escaped = false;
     } else if (character === '\\') {
       escaped = true;
     } else if (character === ';') {
-      if (hasValue) entries += 1;
-      hasValue = false;
-    } else if (!/\s/u.test(character)) {
-      hasValue = true;
+      if (current.trim()) entries.push(firstUnescapedColon === undefined
+        ? { value: current }
+        : { value: current, firstUnescapedColon });
+      current = '';
+      firstUnescapedColon = undefined;
+    } else {
+      if (character === ':' && firstUnescapedColon === undefined) firstUnescapedColon = current.length;
+      current += character;
     }
   }
 
-  if (hasValue || escaped) entries += 1;
+  if (escaped) current += '\\';
+  if (current.trim()) entries.push(firstUnescapedColon === undefined
+    ? { value: current }
+    : { value: current, firstUnescapedColon });
   return entries;
+}
+
+function comparableBarcodeValue(entry: { value: string; firstUnescapedColon?: number }): string {
+  const value = entry.value.trim();
+  if (entry.firstUnescapedColon === undefined) return value;
+
+  const separator = entry.firstUnescapedColon;
+  const type = entry.value.slice(0, separator).trim().toLowerCase();
+  if (!SHOPIFY_BARCODE_TYPES.has(type)) return value;
+  return entry.value.slice(separator + 1).trim();
+}
+
+function findDuplicateBarcodeValue(entries: Array<{ value: string; firstUnescapedColon?: number }>): string | undefined {
+  const seen = new Set<string>();
+  for (const entry of entries) {
+    const comparable = comparableBarcodeValue(entry);
+    if (!comparable) continue;
+    if (seen.has(comparable)) return comparable;
+    seen.add(comparable);
+  }
+  return undefined;
 }
 
 const VARIANT_COLUMNS = [
@@ -1222,7 +1253,8 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     if (startsProduct || hasOptionValue || hasVariantData) {
       for (const columnIndex of barcodesIndices) {
         const barcodeValue = row[columnIndex] ?? '';
-        const barcodeCount = countBarcodeEntries(barcodeValue);
+        const barcodeEntries = parseBarcodeEntries(barcodeValue);
+        const barcodeCount = barcodeEntries.length;
         if (barcodeCount > MAX_SHOPIFY_BARCODES_PER_VARIANT) {
           issues.push(makeIssue(
             'variant-barcode-count-exceeds-limit',
@@ -1232,6 +1264,18 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
             csv.headers[columnIndex],
             'Shopify documents up to 20 barcodes per product or variant. The current product template also uses the Variant Barcodes header. Values are separated by semicolons; escaped semicolons and backslashes are part of a barcode value and are not counted as separators. The app preserves the original cell.',
             PRODUCT_CSV_SOURCE,
+          ));
+        }
+        const duplicateBarcode = findDuplicateBarcodeValue(barcodeEntries);
+        if (duplicateBarcode !== undefined) {
+          issues.push(makeIssue(
+            'duplicate-barcode-value',
+            'warning',
+            'This barcode value appears more than once in the same product or variant cell.',
+            visibleRow,
+            csv.headers[columnIndex],
+            'Shopify says the same barcode value cannot be used twice on the same product or variant. Values are compared within this cell, ignoring a documented type prefix such as `gtin:` or `upc:`; the app preserves the original text and does not infer cross-row identity.',
+            'https://help.shopify.com/en/manual/products/details/product-details-page/',
           ));
         }
       }

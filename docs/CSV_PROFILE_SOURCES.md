@@ -219,3 +219,5 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 Every issue produced by the product profile includes the profile version and the relevant official documentation URL. Parser-only diagnostics are separate and do not claim Shopify compatibility rules.
 
 Recheck the official source before changing profile rules because Shopify's CSV format can change.
+
+Version .64: warn when the same barcode value appears more than once within one plural barcode cell, based on Shopify's documented uniqueness rule. Compare recognized barcode types independent of their type: prefix, honor escaped delimiters, and do not compare across CSV rows or alter values. Source: https://help.shopify.com/en/manual/products/details/product-details-page/.

@@ -1,0 +1,5 @@
+Title,URL handle,Option1 name,Option1 value,Variant Barcodes
+Mug,mug,Size,Small,"gtin:123; upc:123"
+Mug,mug,Size,Large,"custom:batch-42; batch-42"
+Cup,cup,Size,Small,"custom:a\;b;custom:a\;c"
+Cup,cup,Size,Large,shared-code
