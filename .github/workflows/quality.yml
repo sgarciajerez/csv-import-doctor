@@ -41,7 +41,11 @@ jobs:
         with:
           node-version: 22.20.0
           cache: npm
-          cache-dependency-path: csv-import-doctor/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            csv-import-doctor/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: ..
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
