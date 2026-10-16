@@ -15,6 +15,10 @@ import { authenticate } from '../shopify.server';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { releaseFileAfterAnalysis } from '../file-reference.mjs';
 
+export function meta() {
+  return [{ title: 'Analizador de CSV | CSV Import Doctor' }];
+}
+
 const MAX_FILE_BYTES = 20_000_000;
 const MAX_VISIBLE_ITEMS = 100;
 const MAX_PREVIEW_CELL_LENGTH = 500;

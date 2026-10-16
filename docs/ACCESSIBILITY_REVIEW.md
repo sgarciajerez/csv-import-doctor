@@ -19,6 +19,8 @@ WCAG 2.2 references: [1.4.3 Contrast (Minimum)](https://www.w3.org/WAI/WCAG22/Un
 
 ## Automated interaction coverage
 
+- The authenticated E2E injects axe-core 4.14.0 into the embedded app and checks WCAG 2.0 A/AA, WCAG 2.1 A/AA, and WCAG 2.2 AA rules on the initial analyzer screen and after CSV analysis. Both audited states passed with zero axe violations on 2026-10-16. This automated scan does not cover every interaction state or replace manual review.
+- The document now has route-specific titles for the analyzer, guide, and privacy page; axe had identified the missing title in the embedded document.
 - Authenticated E2E checks keyboard focus from the import-mode selector to the file input, and changes the create/update selector with arrow keys and Enter.
 - At 390 px viewport width, the current-header fixture produces no document-level horizontal overflow; the preview limits visible columns to 20.
 

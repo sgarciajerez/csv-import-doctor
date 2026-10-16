@@ -1,3 +1,7 @@
+export function meta() {
+  return [{ title: 'Privacidad | CSV Import Doctor' }];
+}
+
 export default function Privacy() {
   return (
     <main style={{ maxWidth: 800, margin: '40px auto', padding: '0 20px', fontFamily: 'system-ui, sans-serif', lineHeight: 1.6, color: '#202223' }}>

@@ -1,5 +1,9 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
+export function meta() {
+  return [{ title: "CSV Import Doctor" }];
+}
+
 export default function App() {
   return (
     <html lang="es">

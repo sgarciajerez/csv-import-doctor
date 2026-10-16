@@ -3,6 +3,7 @@
 Initial core coverage:
 
 - CI on pushes and pull requests to `develop` and `master` installs the root core workspace and the Shopify app from their lockfiles, then runs lint, typecheck, unit tests, and production build for both; authenticated E2E remains a separately configured gate.
+- When a machine cannot resolve Shopify CLI's temporary tunnel hostname, authenticated E2E can use `PLAYWRIGHT_HOST_RESOLVER_RULES` for Chrome's host resolver and `PLAYWRIGHT_APP_SERVER_URL` for direct local webhook requests; do not commit tunnel-specific hostnames or IP addresses.
 - Diagnostic contract over every CSV fixture in both create and update modes: require stable IDs, complete issue metadata, valid row/column references, source and profile version on Shopify findings, and a catalog entry for every emitted rule; map Papa Parse parser codes to the documented parser rule template.
 - UTF-8 BOM, explicit rejection of invalid UTF-8, quoted delimiters, escaped quotes, embedded newlines, and Unicode.
 - Duplicate headers and rows with too few or too many cells.
@@ -12,6 +13,7 @@ Initial core coverage:
 - Create/update profile requirements and product variant continuation rows.
 - Option integrity: on a product-start row, an explicit `OptionN name` with a blank matching value receives a sourced advisory in create and update mode; valid `Default Title` values and continuation rows with omitted option names stay clear, with all cells preserved.
 - In authenticated E2E, verify the import-mode control and file input are reachable by tab and the create/update selector changes via keyboard; keep the full manual keyboard, screen-reader, contrast, and responsive review as a separate requirement.
+- In authenticated E2E, inject axe-core into the embedded app and require zero WCAG 2.0 A/AA, WCAG 2.1 A/AA, and WCAG 2.2 AA violations on the initial analyzer and analyzed-result states. Keep other interaction states and manual assistive-technology review separate.
 - At a 390 px viewport, analyze the full current-header fixture; verify the page does not overflow horizontally and the preview caps its visible header columns at 20. This automated check does not replace review on actual narrow devices.
 - Record WCAG contrast calculations for authored text and control colors in `docs/ACCESSIBILITY_REVIEW.md`; verify focused file input has a computed outline in authenticated E2E. Polaris theme surfaces, badges, screen-reader output, and other browser/device combinations remain manual review items.
 - Before claiming importer-level compatibility, manually compare `fixtures/shopify-product-import-smoke.csv` with the Shopify development-store importer. Confirm it creates one draft product with two Size variants, then remove that synthetic product. This is a manual store mutation and requires the owner’s explicit product decision; automated app tests must never trigger it.

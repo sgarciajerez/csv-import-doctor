@@ -10,6 +10,9 @@ export default defineConfig({
     launchOptions: {
       channel: 'chrome',
       headless: false,
+      args: process.env.PLAYWRIGHT_HOST_RESOLVER_RULES
+        ? [`--host-resolver-rules=${process.env.PLAYWRIGHT_HOST_RESOLVER_RULES}`]
+        : [],
     },
     baseURL: process.env.PLAYWRIGHT_APP_URL || 'http://localhost:3000',
     storageState: process.env.PLAYWRIGHT_STORAGE_STATE || undefined,

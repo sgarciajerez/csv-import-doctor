@@ -1,7 +1,40 @@
 import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Frame } from '@playwright/test';
 import { parseCsv } from '../../packages/csv-doctor-core/src/index.js';
+
+const require = createRequire(import.meta.url);
+
+async function auditEmbeddedAppAccessibility(frame: Frame) {
+  await frame.addScriptTag({ path: require.resolve('axe-core/axe.min.js') });
+  return frame.evaluate(async () => {
+    type AxeViolation = {
+      id: string;
+      impact: string | null;
+      description: string;
+      nodes: Array<{ target: string[]; failureSummary: string | null }>;
+    };
+    type AxeWindow = Window & {
+      axe?: {
+        run: (context: Document, options: { runOnly: { type: 'tag'; values: string[] } }) => Promise<{
+          violations: AxeViolation[];
+        }>;
+      };
+    };
+    const axe = (window as AxeWindow).axe;
+    if (!axe) throw new Error('axe-core was not loaded in the Shopify app iframe.');
+    const results = await axe.run(document, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] },
+    });
+    return results.violations.map(({ id, impact, description, nodes }) => ({
+      id,
+      impact,
+      description,
+      nodes: nodes.map(({ target, failureSummary }) => ({ target, failureSummary })),
+    }));
+  });
+}
 
 test('analyzes, filters, repairs, and downloads locally without sending CSV data', async ({ page }) => {
   test.setTimeout(120_000);
@@ -27,8 +60,11 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   const app = page.frameLocator('iframe[src*="embedded=1"]');
   await expect(app.locator('s-section').first()).toBeVisible();
   await appFrame.waitForLoadState('networkidle');
+  const initialAccessibilityViolations = await auditEmbeddedAppAccessibility(appFrame);
+  expect(initialAccessibilityViolations, JSON.stringify(initialAccessibilityViolations, null, 2)).toEqual([]);
 
-  const complianceEndpoint = new URL('/webhooks/compliance', appFrame.url()).toString();
+  const appServerOrigin = process.env.PLAYWRIGHT_APP_SERVER_URL || appFrame.url();
+  const complianceEndpoint = new URL('/webhooks/compliance', appServerOrigin).toString();
   const invalidHmacWebhook = await page.request.post(complianceEndpoint, {
     data: {},
     headers: {
@@ -112,6 +148,8 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(app.getByRole('status').filter({ hasText: 'Análisis completado: 2 filas' })).toBeVisible();
   await expect(app.getByRole('table').getByRole('caption')).toHaveText('Vista previa de las primeras 2 filas del CSV');
   await expect(app.getByRole('columnheader', { name: 'Title' })).toHaveAttribute('scope', 'col');
+  const analyzedAccessibilityViolations = await auditEmbeddedAppAccessibility(appFrame);
+  expect(analyzedAccessibilityViolations, JSON.stringify(analyzedAccessibilityViolations, null, 2)).toEqual([]);
   await app.getByLabel('Filtrar por tipo').selectOption('error');
   await app.getByLabel('Buscar incidencia').fill('missing');
   await expect(app.getByText(/missing its Title value/i)).toBeVisible();
