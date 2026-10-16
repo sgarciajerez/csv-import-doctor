@@ -1,66 +1,57 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, Form, useActionData, useLoaderData } from "react-router";
+import type { LoaderFunctionArgs } from 'react-router';
+import { Link, redirect } from 'react-router';
+import styles from './styles.module.css';
 
-import { login } from "../../shopify.server";
-import { loginErrorMessage } from "./error.server";
-
-import styles from "./styles.module.css";
+export function meta() {
+  return [{ title: 'CSV Import Doctor | CSV de productos Shopify' }];
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
-  if (url.searchParams.get("shop")) {
+  if (url.searchParams.has('shop')) {
     throw redirect(`/app?${url.searchParams.toString()}`);
   }
 
-  return { showForm: Boolean(login) };
+  return null;
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const errors = loginErrorMessage(await login(request));
-
-  return { errors };
-};
-
-export default function App() {
-  const { showForm } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
-  const errors = actionData?.errors;
-
+export default function LandingPage() {
   return (
-    <div className={styles.index}>
-      <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
-        <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+    <main className={styles.page}>
+      <section className={styles.content} aria-labelledby="page-title">
+        <p className={styles.eyebrow}>CSV Import Doctor</p>
+        <h1 id="page-title" className={styles.heading}>Revisa tu CSV de productos antes de importarlo</h1>
+        <p className={styles.intro}>
+          Detecta problemas habituales y revisa cambios propuestos. El análisis se realiza en tu navegador;
+          la app no importa productos ni garantiza que Shopify acepte el archivo.
         </p>
-        {showForm && (
-          <Form className={styles.form} method="post">
-            <label className={styles.label}>
-              <span>Shop domain</span>
-              <input className={styles.input} type="text" name="shop" />
-              <span>{errors?.shop ?? "e.g: my-shop-domain.myshopify.com"}</span>
-            </label>
-            <button className={styles.button} type="submit">
-              Log in
-            </button>
-          </Form>
-        )}
-        <ul className={styles.list}>
+
+        <a className={styles.primaryLink} href="https://admin.shopify.com/apps">
+          Abrir Shopify Admin
+        </a>
+        <p className={styles.installNote}>
+          Instala y abre CSV Import Doctor desde Shopify Admin. La instalación se inicia en Shopify y esta página
+          no pide el dominio de tu tienda.
+        </p>
+
+        <ul className={styles.features}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <h2>Diagnóstico preventivo</h2>
+            <p>Consulta incidencias con su explicación, ubicación y enlace a la documentación de Shopify.</p>
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <h2>Reparaciones revisables</h2>
+            <p>Elige qué cambios aplicar, comprueba la vista previa y deshazlos antes de exportar.</p>
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <h2>CSV en tu dispositivo</h2>
+            <p>El archivo se analiza localmente y la app no lo sube al servidor.</p>
           </li>
         </ul>
-      </div>
-    </div>
+
+        <Link className={styles.privacyLink} to="/privacy">Consulta la política de privacidad</Link>
+      </section>
+    </main>
   );
 }

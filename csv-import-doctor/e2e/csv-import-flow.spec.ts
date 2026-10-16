@@ -60,6 +60,18 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   const app = page.frameLocator('iframe[src*="embedded=1"]');
   await expect(app.locator('s-section').first()).toBeVisible();
   await appFrame.waitForLoadState('networkidle');
+
+  const landingPage = await page.context().newPage();
+  await landingPage.goto(new URL('/', appFrame.url()).toString());
+  await expect(landingPage.getByRole('heading', { name: 'Revisa tu CSV de productos antes de importarlo' })).toBeVisible();
+  await expect(landingPage.getByRole('link', { name: 'Abrir Shopify Admin' })).toHaveAttribute(
+    'href',
+    'https://admin.shopify.com/apps',
+  );
+  await expect(landingPage.locator('input[name="shop"]')).toHaveCount(0);
+  await expect(landingPage.getByText(/no pide el dominio de tu tienda/)).toBeVisible();
+  await landingPage.close();
+
   const initialAccessibilityViolations = await auditEmbeddedAppAccessibility(appFrame);
   expect(initialAccessibilityViolations, JSON.stringify(initialAccessibilityViolations, null, 2)).toEqual([]);
 

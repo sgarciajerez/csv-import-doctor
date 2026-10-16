@@ -146,12 +146,14 @@ Antes de cerrar cualquier requisito, registrar evidencia verificable en `docs/PR
 **Prioridad:** P1 antes de piloto ampliado; P2 para publicación.
 
 - Mantener el scaffold y la autenticación oficiales vigentes, permisos mínimos y procesamiento del CSV sin llamadas Admin API innecesarias.
+- El punto de entrada publico no pide al comerciante escribir un dominio `myshopify.com`; la instalacion comienza en una superficie Shopify y la pagina publica explica el producto sin texto de plantilla.
 - Probar instalación, apertura, navegación, sesiones y desinstalación en una tienda de desarrollo limpia.
 - Separar las comprobaciones de compatibilidad CSV del proceso de importación real; nunca iniciar una importación sin una decisión de producto posterior.
 - Revisar requisitos actuales de distribución, privacidad, soporte, seguridad, webhooks y ficha de Shopify antes de solicitar publicación.
+- Mantener el autochequeo local de requisitos App Store en `docs/SHOPIFY_APP_STORE_REVIEW.md` y volver a obtener la lista canónica antes de cada envío.
 - No implementar billing ni publicar la app hasta tener alcance comercial, requisitos vigentes y autorización correspondiente.
 
-**Criterios de aceptación:** checklist Shopify actualizado con fuentes oficiales y entorno de pruebas repetible; no hay scopes innecesarios ni secretos de producción en el repositorio.
+**Criterios de aceptación:** checklist Shopify actualizado con fuentes oficiales y entorno de pruebas repetible; el punto de entrada publico no solicita el dominio de la tienda ni muestra placeholders del scaffold; no hay scopes innecesarios ni secretos de producción en el repositorio.
 
 ### R10-10 — Validación con comerciantes y operación
 
