@@ -1,6 +1,6 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.29';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.30';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -23,6 +23,7 @@ const RECOMMENDATION_RULES = new Set([
   'unrecognized-product-header',
   'conflicting-header-aliases',
   'inventory-quantity-missing-with-tracker',
+  'inventory-quantity-without-tracker',
   'blank-price-may-fail-import',
   'invalid-product-money-format',
   'custom-fulfillment-service-handle-format',
@@ -364,6 +365,8 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const requiresShippingIndex = headerIndex(csv.headers, 'Requires shipping');
   const skuIndex = headerIndex(csv.headers, 'SKU');
   const inventoryTrackerIndex = headerIndex(csv.headers, 'Inventory tracker');
+  const inventoryTrackerColumnCount = ['Inventory tracker', ...LEGACY_HEADER_ALIASES['Inventory tracker']!]
+    .filter((header) => indices.has(header)).length;
   const inventoryQuantityIndex = headerIndex(csv.headers, 'Inventory quantity');
   const inventoryPolicyIndex = headerIndex(csv.headers, 'Continue selling when out of stock');
   const fulfillmentServiceIndex = headerIndex(csv.headers, 'Fulfillment service');
@@ -909,6 +912,16 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
         'Inventory quantity',
         'Shopify’s troubleshooting guide lists blank inventory quantity as an import error when inventory is tracked, while its product column table says an omitted quantity defaults to 0. Add the intended quantity to remove this ambiguity, or leave Inventory tracker blank when you do not track inventory.',
         'https://help.shopify.com/en/manual/products/import-export/common-import-issues',
+      ));
+    }
+    if (inventoryTrackerIndex !== undefined && inventoryTrackerColumnCount === 1 && !inventoryTracker && inventoryQuantity) {
+      issues.push(makeIssue(
+        'inventory-quantity-without-tracker',
+        'warning',
+        'Inventory quantity is provided while Inventory tracker is blank.',
+        visibleRow,
+        csv.headers[inventoryTrackerIndex],
+        'Shopify documents a blank Inventory tracker for inventory that is not tracked. If this quantity is intended to be tracked, choose the appropriate tracker. In update mode, a blank included cell can clear an existing value if overwrite is selected. This may be intentional; the app cannot inspect the store and preserves both cells.',
       ));
     }
     if (inventoryTracker && !['shopify', 'shipwire', 'amazon_marketplace_web'].includes(inventoryTracker)) {

@@ -158,6 +158,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(appBody).toContainText('This custom fulfillment service name may not match Shopify’s handle format guidance.');
   await expect(appBody).toContainText('This Inventory tracker value is not listed in Shopify’s current product CSV guide.');
 
+  const inventoryWithoutTracker = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-inventory-without-tracker.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-inventory-without-tracker.csv',
+    mimeType: 'text/csv',
+    buffer: inventoryWithoutTracker,
+  });
+  await expect(appBody).toContainText('Inventory quantity is provided while Inventory tracker is blank.');
+
   const booleanValues = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-boolean-values.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-boolean-values.csv',
