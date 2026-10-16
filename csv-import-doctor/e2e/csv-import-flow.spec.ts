@@ -37,7 +37,7 @@ async function auditEmbeddedAppAccessibility(frame: Frame) {
 }
 
 test('analyzes, filters, repairs, and downloads locally without sending CSV data', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   test.skip(!process.env.PLAYWRIGHT_APP_URL || !process.env.PLAYWRIGHT_STORAGE_STATE,
     'Set PLAYWRIGHT_APP_URL and PLAYWRIGHT_STORAGE_STATE from the authenticated Shopify dev preview.');
 
@@ -54,7 +54,10 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   if (await loginHeading.isVisible().catch(() => false)) {
     throw new Error('Shopify redirected to its sign-in page. Finish Shopify login in the Playwright browser, close it to save storage state, then rerun this test.');
   }
-  await expect.poll(() => page.frames().some((frame) => frame.url().includes('embedded=1'))).toBe(true);
+  await expect.poll(
+    () => page.frames().some((frame) => frame.url().includes('embedded=1')),
+    { timeout: 30_000 },
+  ).toBe(true);
   const appFrame = page.frames().find((frame) => frame.url().includes('embedded=1'));
   if (!appFrame) throw new Error('Shopify did not load the embedded app frame.');
   const app = page.frameLocator('iframe[src*="embedded=1"]');
@@ -797,15 +800,34 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   const nearLimitCsv = Buffer.from(`Title,Description\nMug,"${longDescription}"\n`, 'utf8');
   expect(nearLimitCsv.byteLength).toBeLessThanOrEqual(20_000_000);
   const nearLimitStartedAt = performance.now();
+  const progressStatus = app.getByRole('status').first();
+  await progressStatus.evaluate((element) => {
+    const testWindow = element.ownerDocument.defaultView as (Window & {
+      __analysisStatusEvents?: string[];
+      __analysisStatusObserver?: MutationObserver;
+    });
+    testWindow.__analysisStatusEvents = [];
+    testWindow.__analysisStatusObserver = new MutationObserver(() => {
+      const value = element.textContent?.trim();
+      if (value) testWindow.__analysisStatusEvents?.push(value);
+    });
+    testWindow.__analysisStatusObserver.observe(element, { childList: true, characterData: true, subtree: true });
+  });
   const nearLimitUpload = app.locator('input[type="file"]').setInputFiles({
     name: 'near-local-limit.csv',
     mimeType: 'text/csv',
     buffer: nearLimitCsv,
   });
-  await Promise.all([
-    nearLimitUpload,
-    expect(app.getByRole('status').filter({ hasText: 'Analizando la estructura CSV…' })).toBeVisible(),
-  ]);
+  await nearLimitUpload;
+  await expect.poll(() => progressStatus.evaluate((element) => {
+    const testWindow = element.ownerDocument.defaultView as (Window & { __analysisStatusEvents?: string[] });
+    return testWindow.__analysisStatusEvents ?? [];
+  }), { timeout: 30_000 }).toContain('Analizando la estructura CSV…');
+  await appFrame.evaluate(() => {
+    const testWindow = window as (Window & { __analysisStatusObserver?: MutationObserver });
+    testWindow.__analysisStatusObserver?.disconnect();
+    delete testWindow.__analysisStatusObserver;
+  });
   await expect(app.getByRole('status').first()).toContainText('Análisis completado: 1 filas');
   await expect(app.getByText('Shopify product CSV files cannot exceed 15 MB; split this file before importing.')).toBeVisible();
   await expect(app.locator('a[href="https://help.shopify.com/en/manual/products/import-export/import-products"]')).toBeVisible();
@@ -840,6 +862,26 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(app.getByRole('button', { name: 'Descargar CSV revisado' })).toBeDisabled();
   await expect(app.getByRole('button', { name: 'Descargar informe JSON' })).toBeDisabled();
   console.log(`[perf] 100,001-row limit diagnosis: ${Math.round(performance.now() - rowLimitStartedAt)} ms`);
+
+  const largeVariantRows = ['Title,URL handle,Option1 name,Option1 value'];
+  for (let index = 0; index < 10_001; index += 1) {
+    const productIndex = Math.floor(index / 2_000);
+    const variantIndex = index % 2_000;
+    largeVariantRows.push(`${variantIndex === 0 ? `Product ${productIndex}` : ''},product-${productIndex},Size,Value ${variantIndex}`);
+  }
+  const largeVariantFile = app.locator('input[type="file"]');
+  await largeVariantFile.setInputFiles({
+    name: 'large-variant-create.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(largeVariantRows.join('\n'), 'utf8'),
+  });
+  await expect(largeVariantFile).toHaveValue('');
+  await expect(analysisStatus).toContainText('Análisis completado: 10001 filas', { timeout: 60_000 });
+  await app.getByPlaceholder('Regla, mensaje, fila o columna').fill('large-create-csv-variant-limit');
+  await expect(app.getByText('This create-mode CSV contains more than 10,000 rows that may create variants.'))
+    .toBeVisible();
+  await expect(app.getByText('This local row-based estimate cannot determine whether these rows create new variants'))
+    .toBeVisible();
 
   expect(requestBodies.join('\n')).not.toContain('CSV-DOCTOR-PRIVATE-MARKER-7Q4');
   expect(requestBodies.join('\n')).not.toContain('CSV-DOCTOR-AMBIGUOUS-MARKER-3M8');
