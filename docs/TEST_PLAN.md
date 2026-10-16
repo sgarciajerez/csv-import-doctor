@@ -9,6 +9,7 @@ Initial core coverage:
 - Google Shopping headers are limited to the exact names enumerated by the current Shopify guide or present in its downloadable template; a one-character misspelling gets a low-confidence suggestion, unrelated names stay informational, and round-trip preserves all headers and cells.
 - Authenticated embedded-admin E2E loads the Google Shopping header fixture and checks that the probable typo and unrecognized-header diagnostics are visible to the merchant.
 - The exact older-template image aliases `Image Src` and `Image Alt Text` resolve to current `Product image URL` and `Image alt text`; test current-only, legacy-only, and mixed-header behavior, preserve both columns when mixed, and count a legacy image column only once toward the product-image limit.
+- For `Option1/2/3 LinkedTo` and downloadable-template `Option1/2/3 Linked To`, test each spelling alone and together; mixed spellings produce an ambiguity warning, preserve both values, and validate each link format.
 - UTF-8 BOM, explicit rejection of invalid UTF-8, quoted delimiters, escaped quotes, embedded newlines, and Unicode.
 - Duplicate headers and rows with too few or too many cells.
 - Empty/malformed input and ambiguous delimiter selection, including blocked repairs/downloads until explicit user confirmation and reparse.

@@ -154,6 +154,16 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     'This file contains multiple headers for the same Shopify field: Product image URL / Image Src.',
   );
 
+  const conflictingOptionLinkedToHeaders = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-conflicting-option-linkedto-headers.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-conflicting-option-linkedto-headers.csv',
+    mimeType: 'text/csv',
+    buffer: conflictingOptionLinkedToHeaders,
+  });
+  await expect(app.locator('body')).toContainText(
+    'This file contains multiple headers for the same Shopify field: Option1 LinkedTo / Option1 Linked To.',
+  );
+
   const barcodeHeaderOverlap = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-barcode-header-overlap.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-barcode-header-overlap.csv',

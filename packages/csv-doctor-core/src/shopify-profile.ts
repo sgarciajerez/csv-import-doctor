@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.51';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.52';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -82,13 +82,19 @@ const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'Product image URL': ['Image Src'],
   'Image alt text': ['Image Alt Text'],
 };
+const TEMPLATE_HEADER_ALIASES: Record<string, string[]> = {
+  'Option1 LinkedTo': ['Option1 Linked To'],
+  'Option2 LinkedTo': ['Option2 Linked To'],
+  'Option3 LinkedTo': ['Option3 Linked To'],
+};
+const DOCUMENTED_HEADER_ALIASES = { ...LEGACY_HEADER_ALIASES, ...TEMPLATE_HEADER_ALIASES };
 
 function headerIndex(headers: string[], canonical: string): number | undefined {
   const currentIndex = headers.indexOf(canonical);
   if (currentIndex >= 0) return currentIndex;
-  for (const alias of LEGACY_HEADER_ALIASES[canonical] ?? []) {
-    const legacyIndex = headers.indexOf(alias);
-    if (legacyIndex >= 0) return legacyIndex;
+  for (const alias of DOCUMENTED_HEADER_ALIASES[canonical] ?? []) {
+    const aliasIndex = headers.indexOf(alias);
+    if (aliasIndex >= 0) return aliasIndex;
   }
   return undefined;
 }
@@ -185,6 +191,7 @@ const STATIC_PRODUCT_HEADERS = new Set([
   ...ADDITIONAL_SHOPIFY_TEMPLATE_HEADERS,
   ...GOOGLE_SHOPPING_HEADERS,
   ...Object.keys(LEGACY_HEADER_ALIASES), ...Object.values(LEGACY_HEADER_ALIASES).flat(),
+  ...Object.keys(TEMPLATE_HEADER_ALIASES), ...Object.values(TEMPLATE_HEADER_ALIASES).flat(),
 ]);
 const NORMALIZED_STATIC_PRODUCT_HEADERS = new Set([...STATIC_PRODUCT_HEADERS].map((header) => header.toLowerCase()));
 const UNSUPPORTED_PRODUCT_MEDIA_HEADERS = new Set([
@@ -486,17 +493,22 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     ));
   }
 
-  Object.entries(LEGACY_HEADER_ALIASES).forEach(([currentHeader, legacyHeaders]) => {
-    const matchingHeaders = [currentHeader, ...legacyHeaders].filter((header) => indices.has(header));
+  Object.entries(DOCUMENTED_HEADER_ALIASES).forEach(([currentHeader, aliases]) => {
+    const matchingHeaders = [currentHeader, ...aliases].filter((header) => indices.has(header));
     if (matchingHeaders.length < 2) return;
+    const isLegacyAlias = Object.prototype.hasOwnProperty.call(LEGACY_HEADER_ALIASES, currentHeader);
     issues.push(makeIssue(
       'conflicting-header-aliases',
       'warning',
       `This file contains multiple headers for the same Shopify field: ${matchingHeaders.join(' / ')}.`,
       1,
       matchingHeaders.join(' / '),
-      `The profile recognizes these current and older header names as aliases for "${currentHeader}". Shopify documents backward compatibility with older templates, but does not specify how both columns are handled together. Confirm which column contains the intended data; both columns and their values are preserved.`,
-      'https://help.shopify.com/en/manual/products/import-export/common-import-issues',
+      isLegacyAlias
+        ? `The profile recognizes these current and older header names as aliases for "${currentHeader}". Shopify documents backward compatibility with older templates, but does not specify how both columns are handled together. Confirm which column contains the intended data; both columns and their values are preserved.`
+        : `Shopify's current guide uses "${currentHeader}", while the downloadable product template uses "${aliases.join('" / "')}". Shopify does not document how both columns are handled together. Confirm which column contains the intended data; both columns and their values are preserved.`,
+      isLegacyAlias
+        ? 'https://help.shopify.com/en/manual/products/import-export/common-import-issues'
+        : PRODUCT_CSV_SOURCE,
     ));
   });
 
