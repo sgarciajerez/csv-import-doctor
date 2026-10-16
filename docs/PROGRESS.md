@@ -100,13 +100,6 @@
 - [x] R10-04: E2E autenticado envía bytes con secuencia UTF-8 inválida y confirma el error explícito y la ausencia de resultados parciales.
 - [x] R10-06 (parcial): registrado un baseline reproducible en `docs/PERFORMANCE_BASELINE.md`: 19.999.975 bytes (sobre el límite Shopify de 15 MB, bajo el límite local de 20 MB) se analizan y previsualizan en 2.156 ms; 100.001 filas alcanzan y bloquean el límite en 489 ms. La vista previa limita celdas extensas a 500 unidades de texto más elipsis; la exportación conserva el contenido completo.
 - [ ] R10-06 pendiente: repetir en el navegador/dispositivo menos potente que se vaya a soportar y medir memoria máxima para un CSV representativo con muchas filas; el baseline actual es una estación de desarrollo de 32 GiB y no mide memoria.
-
-
-- [x] Perfil `.35`: valida el formato documentado de `Option1/2/3 LinkedTo` (`product.metafields.shopify.{taxonomy_attribute}`), avisando solo si falta el prefijo o la clave; preserva los valores y no intenta validar atributos/metafields específicos de la tienda. Core: 67 pruebas pasan; lint, typecheck y build pasan.
-- E2E autenticado tras `.35` - pass (1 flujo, 35.2 s), con aviso visible para `Option1 LinkedTo` mal formado.
-
-- [x] Perfil `.36`: con `Inventory tracker=shopify`, detecta como error una fila que contiene solo uno de `Continue selling when out of stock` y `Fulfillment service`; permite que ambos usen los valores predeterminados documentados cuando no se suministra ninguno. No extiende la regla a otros trackers y preserva las celdas. Fixture cubre ambas formas parciales, pareja completa y omisión de valores. Core: 68 pruebas pasan; lint, typecheck y build pasan.
-- E2E autenticado tras `.36` - pass (1 flujo, 29.9 s), con diagnóstico visible de dependencia incompleta.
 ## Decisions and constraints
 
 - CSV parsing, validation, repair, and export run in the browser core. Do not upload, persist, or log CSV contents.
@@ -164,3 +157,7 @@
 - [x] Perfil `.33`: contrasta IDs con forma de categoria `Product category` contra el release oficial Shopify Taxonomy `2026-08`; IDs no reconocidos generan solo informacion con enlace versionado. No valida breadcrumbs localizados ni cambia valores. Fixture cubre ID raiz, anidado, ID desconocido y breadcrumb.
 - [x] Perfil `.34`: crea y actualiza con `Title` no vacío en filas de producto; al actualizar, requiere `URL handle` no vacío en filas con datos de producto o de continuación. Las continuaciones con handle repetido pueden omitir `Title`; los handles no se inventan. Fixture cubre create/update, filas de continuación y valores vacíos. Core: 66 pruebas pasan; lint, typecheck y builds del core y la app pasan.
 - E2E del perfil `.34`: pass (1 flujo autenticado en Admin). La ruta genérica de vista previa dejaba el iframe vacío; al abrir la ruta instalada `/apps/csv-import-doctor-3/app`, el flujo completo pasó e incluyó el fixture de valores requeridos. Shopify CLI y Prisma arrancaron correctamente después de detener los procesos huérfanos de la ejecución anterior.
+- [x] Perfil `.35`: valida el formato documentado de `Option1/2/3 LinkedTo` (`product.metafields.shopify.{taxonomy_attribute}`), avisando solo si falta el prefijo o la clave; preserva los valores y no intenta validar atributos/metafields específicos de la tienda. Core: 67 pruebas pasan; lint, typecheck y build pasan.
+- E2E autenticado tras `.35` - pass (1 flujo, 35.2 s), con aviso visible para `Option1 LinkedTo` mal formado.
+- [x] Perfil `.36`: con `Inventory tracker=shopify`, detecta como error una fila que contiene solo uno de `Continue selling when out of stock` y `Fulfillment service`; permite que ambos usen los valores predeterminados documentados cuando no se suministra ninguno. No extiende la regla a otros trackers y preserva las celdas. Fixture cubre ambas formas parciales, pareja completa y omisión de valores. Core: 68 pruebas pasan; lint, typecheck y build pasan.
+- E2E autenticado tras `.36` - pass (1 flujo, 29.9 s), con diagnóstico visible de dependencia incompleta.
