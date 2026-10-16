@@ -115,11 +115,11 @@
 
 - `npm run lint` - pass.
 - `npm run typecheck` - pass.
-- `npm test` - pass (70 tests, including create/update required-value cases, stale repair targets, and diagnostic-contract coverage across all CSV fixtures).
+- `npm test` - pass (73 tests, including create/update required-value cases, stale repair targets, and diagnostic-contract coverage across all CSV fixtures).
 - `npm run build` - pass.
 - App `npm run typecheck` - pass.
 - App `npm run build` - pass.
-- App `npm run test:unit` - pass (5 compliance webhook tests, including a valid HMAC-authenticated sample through Shopify's React Router `authenticate.webhook` and rejection when the signed raw body is altered).
+- App `npm run test:unit` - pass (6 compliance and file-lifecycle tests, including a valid HMAC-authenticated sample through Shopify's React Router `authenticate.webhook` and rejection when the signed raw body is altered).
 - App targeted ESLint for the route, Worker, and E2E spec - pass.
 - `npm run test:e2e -- --list` - pass (discovers one authenticated workflow).
 - `npm run test:e2e` - pass (1 authenticated embedded-admin flow; default Playwright test timeout is 60 seconds after a full run took 33.2 seconds under load. Checks Shopify source, update overwrite notice and required identifiers, category badge, repair/undo/reapply, CSV bytes plus parse round-trip, report contents, ambiguous delimiter confirmation and reanalysis with repair/download blocking and normalized export, duplicate-variant diagnosis, inventory/fulfillment diagnostics, 15 MB Shopify import-size diagnosis, blank price, boolean, weight, image metadata, SEO limits, accessible analysis states and table headers, file-input reset, cancellation/Worker termination, malformed CSV and invalid UTF-8 rejection, near-20 MB local preview/export integrity, local-size and 100,001-row blocking, and network no-transmission).
