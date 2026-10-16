@@ -41,7 +41,7 @@ Initial core coverage:
 - Inventory tracking: warn when a nonblank quantity is paired with an explicitly blank current or verified legacy tracker header; preserve the cells, do not flag omitted tracker columns or conflicting current/legacy aliases, and keep valid tracked rows clear.
 - Single-location inventory field: emit one file-level informational note when at least one product `Inventory quantity` value is nonblank; do not emit it when all values are blank or when a separate inventory CSV is detected.
 - Verify unknown columns and repeated SKUs are preserved and are not fatal errors.
-- CSV parse/serialize round-trip and formula-like values remain unmodified absent an explicit export policy.
+- CSV parse/serialize round-trip preserves a deterministic edge-case cell matrix with both comma and semicolon delimiters, including empty cells, embedded delimiters, quotes, LF/CR/CRLF, boundary spaces, and Unicode; formula-like values remain unmodified absent an explicit export policy.
 - Repairs: apply only selected proposals to a copy, verify the source value and column header still match, reject stale proposals, revalidate, and undo without overwriting a changed or differently headed target.
 - Browser bundle has no Node-only imports; analysis makes no network requests.
 - File lifecycle: clear the file input so the same file can be selected again; keep a `File` reference only while an ambiguous delimiter needs reparsing, and release it after ordinary success, confirmed reanalysis, cancellation, parse/runtime failure, or setup failure. A unit test checks the reference-retention policy, and the authenticated E2E exercises confirmed reanalysis. Verify the worker terminates on cancel, unmount, and failure paths.

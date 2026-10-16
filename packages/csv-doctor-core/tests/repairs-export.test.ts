@@ -93,6 +93,22 @@ describe('CSV export', () => {
     expect(exported.formulaProtections).toEqual([]);
   });
 
+  it.each([',', ';'])('round-trips a deterministic edge-case cell matrix with delimiter %s', (delimiter) => {
+    const headers = ['Title', 'comma, header', 'quote " header', 'line\nbreak header', 'semicolon; header'];
+    const rows = [
+      ['plain', 'comma, value', 'quote " value', 'line one\nline two', 'semicolon; value'],
+      [' leading and trailing ', '', 'carriage\rreturn', 'CRLF\r\npair', 'emoji 🛠️ and combining e\u0301'],
+    ];
+    const csv = { headers, rows, delimiter, issues: [] };
+
+    const exported = serializeCsv(csv, { newline: '\r\n' });
+    const reparsed = parseCsv(exported.content, { delimiter });
+
+    expect(reparsed.headers).toEqual(headers);
+    expect(reparsed.rows).toEqual(rows);
+    expect(reparsed.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
+  });
+
   it('can normalize a non-comma source delimiter for Shopify product CSV export', () => {
     const parsed = parseCsv('Title;Description\nMug;"A cup; with detail"');
     const exported = serializeCsv(parsed, { delimiter: ',', newline: '\n' });
