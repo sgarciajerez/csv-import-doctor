@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.53`
+Profile version: `shopify-product-csv-2026-10-16.54`
+
+Changes in `.54`: when exactly one `Price`/`Variant Price` column and one `Compare-at price`/`Variant Compare-at Price` column contain valid numeric values on the same row, recommend reviewing the data if the compare-at price is not higher. Shopify documents that a higher compare-at value is required to display a sale price. This remains a recommendation, not an import error; blank, nonnumeric, or ambiguous alias pairs are skipped, and values are never changed.
 
 Changes in `.53`: recognize `Compare At Price / [Market]` and `Compare-at price / [Market]` as documented spellings for market compare-at price columns. When both appear with the same exact market name, warn that Shopify does not document which one takes precedence and preserve both columns and values.
 
@@ -57,6 +59,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 ## Official sources checked 2026-10-16
 
 - [Creating catalogs for markets](https://help.shopify.com/en/manual/markets/customizations/catalogs) — fixed compare-at pricing requires a fixed product price for the market; market catalog CSV fields also document omitting currency symbols.
+- [Setting sale prices](https://help.shopify.com/en/manual/products/details/product-pricing/sale-pricing) — Shopify displays a sale price only when the compare-at price is higher than the product price.
 - [Using CSV files to import and export products](https://help.shopify.com/en/manual/products/import-export/using-csv) â€” product CSV columns, required fields, variant continuation rows, UTF-8/LF formatting, and related-column behavior.
 - [Localized product CSV guide](https://help.shopify.com/uk/manual/products/import-export/using-csv) — documents `Compare At Price / [Market]` in its market-column examples; the English guide and downloadable template use `Compare-at price / [Market]`. Shopify does not specify precedence when both spellings appear for one market.
 - [Shopify's downloadable product CSV template](https://help.shopify.com/cdn/shopifycloud/product-knowledge/production/csv/product_template.csv) — exact template header row checked 2026-10-16; the fixture preserves this header set and adds dynamic Markets/metafield headers documented on the guide page.
@@ -79,6 +82,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - For creating products, `Title` is the only always-required column; adding variants also requires `URL handle`.
 - For updates, `URL handle` and `Title` are required. Variant data can depend on `Option1 name` and `Option1 value`.
 - Shopify says a fixed `Compare At Price / [Market]` requires a fixed `Price / [Market]`. The profile warns when the compare-at value is supplied while its corresponding market price is blank or absent, preserves both values, and links to the Markets catalog guidance. It does not infer currency values or convert prices.
+- Shopify says a compare-at price must be higher than `Price` to display a sale price. The profile compares valid numeric base price cells row by row, including verified legacy headers, and advises when the compare-at value is equal or lower. It skips blank or malformed values and ambiguous alias pairs, does not classify the CSV as unimportable, and preserves both amounts.
 - Shopify product CSV supports image URLs as media input; video and 3D model uploads use Shopify admin instead. For explicit video or 3D model URL headers, the profile issues a sourced warning and preserves every value. It does not flag custom metafield headers or claim a particular importer result.
 - Shopify says valid URL handles can contain letters, dashes, and numbers, and cannot contain spaces. The app warns on whitespace and, separately, on punctuation or symbols outside Unicode letters, numbers, and hyphens. Both are advisories only; all values remain unchanged.
 - Shopify limits each product to 250 tags, represented as comma-separated values in the `Tags` cell. The app warns above 250 non-empty entries on product-start rows and preserves the original cell.

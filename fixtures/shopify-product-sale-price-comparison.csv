@@ -1,0 +1,8 @@
+Title,URL handle,Price,Compare-at price
+Sale,sale,19.99,29.99
+Equal,equal,19.99,19.99
+Below,below,19.99,17.99
+Malformed,malformed,$19.99,29.99
+Blank,blank,,
+Precise sale,precise-sale,9.9999999999999999999999999999999999,10
+Precise below,precise-below,9.9999999999999999999999999999999999,9.9999999999999999999999999999999998

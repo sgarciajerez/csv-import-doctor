@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.53';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.54';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -32,6 +32,7 @@ const RECOMMENDATION_RULES = new Set([
   'unrecognized-shopify-product-category-id',
   'blank-price-may-fail-import',
   'invalid-product-money-format',
+  'compare-at-price-not-higher-than-price',
   'custom-fulfillment-service-handle-format',
   'unlisted-inventory-tracker',
   'invalid-product-boolean-value',
@@ -101,6 +102,42 @@ function headerIndex(headers: string[], canonical: string): number | undefined {
 
 function unicodeCodePointLength(value: string): number {
   return [...value].length;
+}
+
+function compareDecimalAmounts(left: string, right: string): number | undefined {
+  const parseAmount = (value: string) => {
+    const match = /^([+-]?)(\d+)(?:\.(\d+))?$/.exec(value);
+    if (!match) return undefined;
+    const integer = (match[2] ?? '').replace(/^0+(?=\d)/, '');
+    const fraction = (match[3] ?? '').replace(/0+$/, '');
+    return {
+      negative: match[1] === '-' && /[1-9]/.test(`${integer}${fraction}`),
+      integer,
+      fraction,
+    };
+  };
+  const leftAmount = parseAmount(left);
+  const rightAmount = parseAmount(right);
+  if (!leftAmount || !rightAmount) return undefined;
+  if (leftAmount.negative !== rightAmount.negative) return leftAmount.negative ? -1 : 1;
+
+  let magnitudeComparison = leftAmount.integer.length - rightAmount.integer.length;
+  if (magnitudeComparison === 0) {
+    magnitudeComparison = leftAmount.integer === rightAmount.integer
+      ? 0
+      : leftAmount.integer < rightAmount.integer ? -1 : 1;
+  }
+  if (magnitudeComparison === 0) {
+    const fractionLength = Math.max(leftAmount.fraction.length, rightAmount.fraction.length);
+    for (let index = 0; index < fractionLength; index += 1) {
+      const leftDigit = leftAmount.fraction[index] ?? '0';
+      const rightDigit = rightAmount.fraction[index] ?? '0';
+      if (leftDigit === rightDigit) continue;
+      magnitudeComparison = leftDigit < rightDigit ? -1 : 1;
+      break;
+    }
+  }
+  return leftAmount.negative ? -magnitudeComparison : magnitudeComparison;
 }
 
 function containsAccentedLatinCharacter(value: string): boolean {
@@ -425,6 +462,18 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     .filter((index) => index >= 0);
   const statusIndex = headerIndex(csv.headers, 'Status');
   const priceIndex = headerIndex(csv.headers, 'Price');
+  const comparablePriceIndices = csv.headers
+    .map((header, index) => ['Price', 'Variant Price'].includes(header) ? index : -1)
+    .filter((index) => index >= 0);
+  const comparableCompareAtIndices = csv.headers
+    .map((header, index) => ['Compare-at price', 'Variant Compare-at Price'].includes(header) ? index : -1)
+    .filter((index) => index >= 0);
+  const comparablePricePair = comparablePriceIndices.length === 1 && comparableCompareAtIndices.length === 1
+    ? {
+      priceIndex: comparablePriceIndices[0]!,
+      compareAtIndex: comparableCompareAtIndices[0]!,
+    }
+    : undefined;
   const monetaryHeaders = new Set(['Price', 'Compare-at price', 'Cost per item', 'Variant Price', 'Variant Compare-at Price']);
   const monetaryColumnIndices = csv.headers
     .map((header, index) => monetaryHeaders.has(header) ? index : -1)
@@ -819,6 +868,25 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
           csv.headers[columnIndex],
           'Shopify says Price, Compare-at price, and Cost per item must contain the monetary value without a currency symbol (for example, 9.99). Confirm this value and edit it manually; the analyzer preserves it and does not infer currency, precision, or an intended replacement.',
           PRODUCT_CSV_SOURCE,
+        ));
+      }
+    }
+
+    if (comparablePricePair) {
+      const price = (row[comparablePricePair.priceIndex] ?? '').trim();
+      const compareAtPrice = (row[comparablePricePair.compareAtIndex] ?? '').trim();
+      const comparison = price && compareAtPrice ? compareDecimalAmounts(compareAtPrice, price) : undefined;
+      if (comparison !== undefined && comparison <= 0) {
+        const priceHeader = csv.headers[comparablePricePair.priceIndex] ?? 'Price';
+        const compareAtHeader = csv.headers[comparablePricePair.compareAtIndex] ?? 'Compare-at price';
+        issues.push(makeIssue(
+          'compare-at-price-not-higher-than-price',
+          'warning',
+          `${compareAtHeader} is not higher than ${priceHeader}; Shopify displays a sale price only when the compare-at price is higher.`,
+          visibleRow,
+          `${priceHeader} / ${compareAtHeader}`,
+          'Shopify documents that the compare-at price must be higher than the price to display a sale price. This advisory does not block import or change either value; keep the values if no sale price is intended.',
+          'https://help.shopify.com/en/manual/products/details/product-pricing/sale-pricing',
         ));
       }
     }

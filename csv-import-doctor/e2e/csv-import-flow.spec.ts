@@ -525,6 +525,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(appBody).toContainText('Compare-at price should contain a numeric monetary value without a currency symbol.');
   await expect(appBody).toContainText('Cost per item should contain a numeric monetary value without a currency symbol.');
 
+  const salePriceComparison = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-sale-price-comparison.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-sale-price-comparison.csv',
+    mimeType: 'text/csv',
+    buffer: salePriceComparison,
+  });
+  await expect(appBody).toContainText('Compare-at price is not higher than Price; Shopify displays a sale price only when the compare-at price is higher.');
+
   const excessiveTags = Array.from({ length: 251 }, (_, index) => `tag-${index}`).join(',');
   await app.locator('input[type="file"]').setInputFiles({
     name: 'tags-over-limit.csv',
