@@ -45,7 +45,7 @@ jobs:
             package-lock.json
             csv-import-doctor/package-lock.json
       - run: npm ci --no-audit --no-fund
-        working-directory: ..
+        working-directory: ${{ github.workspace }}
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
