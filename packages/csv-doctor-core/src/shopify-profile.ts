@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.48';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.49';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -157,12 +157,12 @@ const STATIC_PRODUCT_HEADERS = new Set([
   ...ADDITIONAL_SHOPIFY_TEMPLATE_HEADERS,
   ...Object.keys(LEGACY_HEADER_ALIASES), ...Object.values(LEGACY_HEADER_ALIASES).flat(),
 ]);
-const NORMALIZED_STATIC_PRODUCT_HEADERS = new Set([...STATIC_PRODUCT_HEADERS].map((header) => header.toLocaleLowerCase()));
+const NORMALIZED_STATIC_PRODUCT_HEADERS = new Set([...STATIC_PRODUCT_HEADERS].map((header) => header.toLowerCase()));
 const UNSUPPORTED_PRODUCT_MEDIA_HEADERS = new Set([
   'Video URL', 'Product video URL', '3D model URL', 'Product 3D model URL',
 ]);
 const NORMALIZED_UNSUPPORTED_PRODUCT_MEDIA_HEADERS = new Set(
-  [...UNSUPPORTED_PRODUCT_MEDIA_HEADERS].map((header) => header.toLocaleLowerCase()),
+  [...UNSUPPORTED_PRODUCT_MEDIA_HEADERS].map((header) => header.toLowerCase()),
 );
 
 const PRODUCT_DATA_HEADERS = new Set([
@@ -183,7 +183,7 @@ const PRODUCT_DATA_HEADERS = new Set([
 ]);
 
 function isProductDataHeader(header: string): boolean {
-  const normalized = header.trim().toLocaleLowerCase();
+  const normalized = header.trim().toLowerCase();
   return PRODUCT_DATA_HEADERS.has(normalized)
     || /^(included|price|compare-at price|compare at price)\s*\//.test(normalized)
     || normalized.startsWith('google shopping /')
@@ -191,7 +191,7 @@ function isProductDataHeader(header: string): boolean {
 }
 
 function isVariantMetafieldHeader(header: string): boolean {
-  const normalized = header.trim().toLocaleLowerCase();
+  const normalized = header.trim().toLowerCase();
   return normalized.startsWith('variant.metafields.') || normalized.includes('(variant.metafields.');
 }
 
@@ -203,7 +203,7 @@ function hasExactDynamicProductHeader(header: string): boolean {
 }
 
 function hasKnownDynamicProductHeaderCaseInsensitively(header: string): boolean {
-  const normalized = header.trim().toLocaleLowerCase();
+  const normalized = header.trim().toLowerCase();
   return /^(included|price|compare at price|compare-at price) \/ .+$/.test(normalized)
     || normalized.startsWith('google shopping /')
     || normalized.startsWith('product.metafields.')
@@ -212,7 +212,7 @@ function hasKnownDynamicProductHeaderCaseInsensitively(header: string): boolean 
 }
 
 function isUnsupportedProductMediaHeader(header: string): boolean {
-  return NORMALIZED_UNSUPPORTED_PRODUCT_MEDIA_HEADERS.has(header.trim().toLocaleLowerCase());
+  return NORMALIZED_UNSUPPORTED_PRODUCT_MEDIA_HEADERS.has(header.trim().toLowerCase());
 }
 
 function differsByOneEdit(left: string, right: string): boolean {
@@ -252,7 +252,7 @@ function differsByOneEdit(left: string, right: string): boolean {
 }
 
 function looksLikeInventoryQuantity(value: string): boolean {
-  const normalized = value.trim().toLocaleLowerCase();
+  const normalized = value.trim().toLowerCase();
   return normalized === '' || normalized === 'not stocked' || /^-?\d+(?:\.\d+)?$/.test(normalized);
 }
 
@@ -284,7 +284,7 @@ function makeIssue(
 
 export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOptions): CsvIssue[] {
   const issues: CsvIssue[] = [];
-  const normalizedHeaders = new Set(csv.headers.map((header) => header.trim().toLocaleLowerCase()));
+  const normalizedHeaders = new Set(csv.headers.map((header) => header.trim().toLowerCase()));
   const inventorySpecificColumns = [
     'on hand (current)',
     'on hand (new)',
@@ -293,8 +293,8 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const isInventoryCsv = normalizedHeaders.has('location')
     && inventorySpecificColumns.some((header) => normalizedHeaders.has(header));
 
-  const handleHeaderIndex = csv.headers.findIndex((header) => ['handle', 'url handle'].includes(header.trim().toLocaleLowerCase()));
-  const titleHeaderIndex = csv.headers.findIndex((header) => header.trim().toLocaleLowerCase() === 'title');
+  const handleHeaderIndex = csv.headers.findIndex((header) => ['handle', 'url handle'].includes(header.trim().toLowerCase()));
+  const titleHeaderIndex = csv.headers.findIndex((header) => header.trim().toLowerCase() === 'title');
   const dynamicLocationHeaders = csv.headers
     .map((header, index) => ({ header, index }))
     .filter(({ header, index }) => index !== handleHeaderIndex
@@ -524,7 +524,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     }
     if (STATIC_PRODUCT_HEADERS.has(header) || hasExactDynamicProductHeader(header)) return;
 
-    const normalized = trimmed.toLocaleLowerCase();
+    const normalized = trimmed.toLowerCase();
     let ruleId: string;
     let message: string;
     let explanation: string;
@@ -537,7 +537,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       message = 'A product CSV header differs in capitalization from a documented Shopify header.';
       explanation = 'Shopify requires the documented header spelling. Correct the capitalization in the source file; the app does not rename headers automatically.';
     } else {
-      const possibleTypo = [...STATIC_PRODUCT_HEADERS].find((knownHeader) => differsByOneEdit(normalized, knownHeader.toLocaleLowerCase()));
+      const possibleTypo = [...STATIC_PRODUCT_HEADERS].find((knownHeader) => differsByOneEdit(normalized, knownHeader.toLowerCase()));
       if (possibleTypo) {
         ruleId = 'probable-header-typo';
         message = `This header may be a typo for "${possibleTypo}".`;
@@ -652,7 +652,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     const hasVariantData = variantDataIndices.some((index) => Boolean((row[index] ?? '').trim()));
     const requiresShipping = requiresShippingIndex === undefined
       ? ''
-      : (row[requiresShippingIndex] ?? '').trim().toLocaleLowerCase();
+      : (row[requiresShippingIndex] ?? '').trim().toLowerCase();
     const sku = skuIndex === undefined ? '' : (row[skuIndex] ?? '').trim();
     const inventoryTracker = inventoryTrackerIndex === undefined ? '' : (row[inventoryTrackerIndex] ?? '').trim();
     const inventoryQuantity = inventoryQuantityIndex === undefined ? '' : (row[inventoryQuantityIndex] ?? '').trim();
@@ -1211,7 +1211,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     }
     if (
       fulfillmentService
-      && !builtInFulfillmentServices.has(fulfillmentService.toLocaleLowerCase())
+      && !builtInFulfillmentServices.has(fulfillmentService.toLowerCase())
       && !sku
     ) {
       issues.push(makeIssue(
@@ -1225,7 +1225,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     }
     if (
       fulfillmentService
-      && !builtInFulfillmentServices.has(fulfillmentService.toLocaleLowerCase())
+      && !builtInFulfillmentServices.has(fulfillmentService.toLowerCase())
       && /[^\p{Ll}\p{N}-]/u.test(fulfillmentService)
     ) {
       issues.push(makeIssue(
@@ -1261,7 +1261,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
           'Enter a number greater than zero for this dimension; the unit belongs in the separate Packed product dimension unit column.',
         ));
       }
-      if (!['cm', 'in'].includes(packedDimensionValues[3]!.toLocaleLowerCase())) {
+      if (!['cm', 'in'].includes(packedDimensionValues[3]!.toLowerCase())) {
         issues.push(makeIssue(
           'invalid-packed-dimension-unit',
           'error',

@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.48`
+Profile version: `shopify-product-csv-2026-10-16.49`
+
+Changes in `.49`: normalize product CSV headers and documented enum values with locale-independent Unicode lowercase conversion. Header classification and duplicate detection must not change with the merchant's browser locale; an explicit Turkish-locale regression test covers ASCII `I` in legacy Shopify headers.
 
 Changes in `.48`: when the `Variant Barcodes` spelling from Shopify's downloadable template appears alongside another barcode header spelling, show a sourced warning to review the columns. Shopify explicitly says `Barcode` and `Barcodes` cannot both appear, but does not document how `Variant Barcodes` interacts with the other headers; therefore, only the documented pair remains an error, and the template-spelling combination is not described as rejected.
 

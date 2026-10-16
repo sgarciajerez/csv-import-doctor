@@ -135,7 +135,7 @@ export function parseCsv(input: string, options: CsvParseOptions = {}): ParsedCs
   const [headers = [], ...rows] = matrix;
   const seen = new Map<string, number>();
   headers.forEach((header, index) => {
-    const key = header.trim().toLocaleLowerCase();
+    const key = header.trim().toLowerCase();
     const firstIndex = seen.get(key);
     if (firstIndex !== undefined) {
       issues.push(issue(
