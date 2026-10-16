@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.54';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.55';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -353,6 +353,18 @@ function makeIssue(
   return item;
 }
 
+function salePriceComparisonIssue(priceHeader: string, compareAtHeader: string, visibleRow: number): CsvIssue {
+  return makeIssue(
+    'compare-at-price-not-higher-than-price',
+    'warning',
+    `${compareAtHeader} is not higher than ${priceHeader}; Shopify displays a sale price only when the compare-at price is higher.`,
+    visibleRow,
+    `${priceHeader} / ${compareAtHeader}`,
+    'Shopify documents that the compare-at price must be higher than its corresponding base or fixed-market price to display a sale price. This advisory does not block import or change either value; keep the values if no sale price is intended.',
+    'https://help.shopify.com/en/manual/products/details/product-pricing/sale-pricing',
+  );
+}
+
 export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOptions): CsvIssue[] {
   const issues: CsvIssue[] = [];
   const normalizedHeaders = new Set(csv.headers.map((header) => header.trim().toLowerCase()));
@@ -482,10 +494,29 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     .map((header, columnIndex) => {
       const match = /^(?:Compare At Price|Compare-at price) \/ (.+)$/.exec(header);
       if (!match) return undefined;
-      const matchingPriceColumn = csv.headers.indexOf(`Price / ${match[1]}`);
-      return { header, market: match[1], columnIndex, matchingPriceColumn };
+      const priceHeader = `Price / ${match[1]}`;
+      const matchingPriceColumns = csv.headers
+        .map((candidate, index) => candidate === priceHeader ? index : -1)
+        .filter((index) => index >= 0);
+      const sameMarketCompareAtColumns = csv.headers.filter((candidate) =>
+        /^(?:Compare At Price|Compare-at price) \/ (.+)$/.exec(candidate)?.[1] === match[1]);
+      return {
+        header,
+        market: match[1],
+        columnIndex,
+        matchingPriceColumn: matchingPriceColumns[0] ?? -1,
+        matchingPriceHeader: priceHeader,
+        hasUnambiguousMarketPair: matchingPriceColumns.length === 1 && sameMarketCompareAtColumns.length === 1,
+      };
     })
-    .filter((column): column is { header: string; market: string; columnIndex: number; matchingPriceColumn: number } =>
+    .filter((column): column is {
+      header: string;
+      market: string;
+      columnIndex: number;
+      matchingPriceColumn: number;
+      matchingPriceHeader: string;
+      hasUnambiguousMarketPair: boolean;
+    } =>
       column !== undefined);
   const optionValueIndices = ['Option1 value', 'Option2 value', 'Option3 value']
     .map((header) => headerIndex(csv.headers, header))
@@ -879,16 +910,20 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       if (comparison !== undefined && comparison <= 0) {
         const priceHeader = csv.headers[comparablePricePair.priceIndex] ?? 'Price';
         const compareAtHeader = csv.headers[comparablePricePair.compareAtIndex] ?? 'Compare-at price';
-        issues.push(makeIssue(
-          'compare-at-price-not-higher-than-price',
-          'warning',
-          `${compareAtHeader} is not higher than ${priceHeader}; Shopify displays a sale price only when the compare-at price is higher.`,
-          visibleRow,
-          `${priceHeader} / ${compareAtHeader}`,
-          'Shopify documents that the compare-at price must be higher than the price to display a sale price. This advisory does not block import or change either value; keep the values if no sale price is intended.',
-          'https://help.shopify.com/en/manual/products/details/product-pricing/sale-pricing',
-        ));
+        issues.push(salePriceComparisonIssue(priceHeader, compareAtHeader, visibleRow));
       }
+    }
+
+    for (const { header, columnIndex, matchingPriceColumn, matchingPriceHeader, hasUnambiguousMarketPair } of marketCompareAtColumns) {
+      if (!hasUnambiguousMarketPair) continue;
+      const marketPrice = (row[matchingPriceColumn] ?? '').trim();
+      const compareAtPrice = (row[columnIndex] ?? '').trim();
+      const comparison = marketPrice && compareAtPrice
+        ? compareDecimalAmounts(compareAtPrice, marketPrice)
+        : undefined;
+      if (comparison === undefined || comparison > 0) continue;
+
+      issues.push(salePriceComparisonIssue(matchingPriceHeader, header, visibleRow));
     }
 
     for (const { header, market, columnIndex, matchingPriceColumn } of marketCompareAtColumns) {

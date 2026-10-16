@@ -533,6 +533,15 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(appBody).toContainText('Compare-at price is not higher than Price; Shopify displays a sale price only when the compare-at price is higher.');
 
+  const marketSalePrice = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-market-sale-price.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-market-sale-price.csv',
+    mimeType: 'text/csv',
+    buffer: marketSalePrice,
+  });
+  await expect(appBody).toContainText('Compare At Price / South America is not higher than Price / South America; Shopify displays a sale price only when the compare-at price is higher.');
+  await expect(appBody).toContainText('Compare-at price / France is not higher than Price / France; Shopify displays a sale price only when the compare-at price is higher.');
+
   const excessiveTags = Array.from({ length: 251 }, (_, index) => `tag-${index}`).join(',');
   await app.locator('input[type="file"]').setInputFiles({
     name: 'tags-over-limit.csv',

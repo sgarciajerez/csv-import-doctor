@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.54`
+Profile version: `shopify-product-csv-2026-10-16.55`
+
+Changes in `.55`: extend the sale-price comparison recommendation to unambiguous fixed-market pairs (`Price / [Market]` with either documented `Compare At Price / [Market]` or `Compare-at price / [Market]`). Shopify documents these fields in product CSVs and says fixed international sale prices are imported by CSV; the sale-pricing guide says compare-at must be higher than price to display a sale price. This stays advisory, compares decimal strings exactly, skips blank/nonnumeric/ambiguous pairs, and preserves both values.
 
 Changes in `.54`: when exactly one `Price`/`Variant Price` column and one `Compare-at price`/`Variant Compare-at Price` column contain valid numeric values on the same row, recommend reviewing the data if the compare-at price is not higher. Shopify documents that a higher compare-at value is required to display a sale price. This remains a recommendation, not an import error; blank, nonnumeric, or ambiguous alias pairs are skipped, and values are never changed.
 

@@ -1,0 +1,8 @@
+Title,URL handle,Price / South America,Compare At Price / South America,Price / France,Compare-at price / France
+Higher,higher,19.99,29.99,10,12
+Equal,equal,19.99,19.99,10,10.00
+Lower,lower,19.99,17.99,10,9.99
+Invalid,invalid,$19.99,29.99,10,12
+Blank,blank,,,10,
+Conflicting aliases,aliases,10,12,10,12
+Precise,precise,10.0000000000000000000000000000000001,10,10,10.0000000000000000000000000000000001
