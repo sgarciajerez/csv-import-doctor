@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { parseCsv, serializeCsv, validateShopifyProductCsv } from '../src/index.js';
 
 const inventoryFixture = readFileSync(new URL('../../../fixtures/shopify-inventory.csv', import.meta.url), 'utf8');
@@ -116,6 +116,56 @@ describe('validateShopifyProductCsv', () => {
       'duplicate-header', 'column-count-mismatch', 'parser-<Papa Parse error code>',
     ]) {
       expect(diagnosticCatalog, parserRuleId).toContain(`\`${parserRuleId}\``);
+    }
+  });
+
+  it('enforces the diagnostic contract and catalog across every CSV fixture and import mode', () => {
+    const fixtureDirectory = new URL('../../../fixtures/', import.meta.url);
+    const fixtureNames = readdirSync(fixtureDirectory).filter((name) => name.endsWith('.csv')).sort();
+    expect(fixtureNames.length).toBeGreaterThan(0);
+
+    for (const fixtureName of fixtureNames) {
+      const fixture = readFileSync(new URL(fixtureName, fixtureDirectory), 'utf8');
+      const parsed = parseCsv(fixture);
+      const parserIssues = parsed.issues;
+
+      for (const issue of parserIssues) {
+        expect(issue).toMatchObject({
+          id: expect.any(String),
+          ruleId: expect.any(String),
+          severity: expect.stringMatching(/^(error|warning|info)$/),
+          category: 'parser',
+          message: expect.any(String),
+          explanation: expect.any(String),
+          fixSafety: expect.stringMatching(/^(safe|review|manual)$/),
+        });
+        const catalogRule = issue.ruleId.startsWith('parser-') ? 'parser-<Papa Parse error code>' : issue.ruleId;
+        expect(diagnosticCatalog, `${fixtureName}: ${issue.ruleId}`).toContain('`' + catalogRule + '`');
+      }
+
+      for (const mode of ['create', 'update'] as const) {
+        const issues = validateShopifyProductCsv(parsed, { mode });
+        const repeatedRun = validateShopifyProductCsv(parsed, { mode });
+        expect(issues.map((issue) => issue.id), `${fixtureName}: unstable issue ids in ${mode} mode`)
+          .toEqual(repeatedRun.map((issue) => issue.id));
+
+        for (const issue of issues) {
+          expect(issue).toMatchObject({
+            id: expect.any(String),
+            ruleId: expect.any(String),
+            severity: expect.stringMatching(/^(error|warning|info)$/),
+            category: expect.stringMatching(/^(shopify-profile|recommendation)$/),
+            message: expect.any(String),
+            explanation: expect.any(String),
+            fixSafety: expect.stringMatching(/^(safe|review|manual)$/),
+            sourceUrl: expect.stringMatching(/^https:\/\/(help\.shopify\.com|shopify\.dev)\//),
+            profileVersion: expect.stringMatching(/^shopify-product-csv-/),
+          });
+          if (issue.row !== undefined) expect(issue.row).toBeGreaterThanOrEqual(1);
+          if (issue.column !== undefined) expect(issue.column.length).toBeGreaterThan(0);
+          expect(diagnosticCatalog, `${fixtureName}/${mode}: ${issue.ruleId}`).toContain('| `' + issue.ruleId + '` |');
+        }
+      }
     }
   });
 
