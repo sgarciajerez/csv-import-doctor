@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.37';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.38';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -48,6 +48,7 @@ const RECOMMENDATION_RULES = new Set([
   'image-filename-uses-thumbnail-suffix',
   'invalid-option-linkedto-format',
   'duplicate-product-handle',
+  'product-handle-contains-undocumented-characters',
 ]);
 const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'URL handle': ['Handle'],
@@ -632,6 +633,17 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
         visibleRow,
         csv.headers[handleIndex ?? 0],
         'Shopify documents URL handles as letters, dashes, and numbers, and explicitly says they cannot contain spaces. This advisory flags whitespace only; it does not rewrite the handle or infer other invalid characters.',
+        PRODUCT_CSV_SOURCE,
+      ));
+    }
+    if (handle && /[^\p{L}\p{N}\s-]/u.test(rawHandle)) {
+      issues.push(makeIssue(
+        'product-handle-contains-undocumented-characters',
+        'warning',
+        'This product handle contains characters outside Shopify’s documented letters, numbers, and hyphens.',
+        visibleRow,
+        csv.headers[handleIndex ?? 0],
+        'Shopify describes valid URL handles as letters, dashes, and numbers, and says they cannot contain spaces. This advisory flags punctuation and symbols without assuming the importer will reject them; it preserves the value and leaves any edit to you.',
         PRODUCT_CSV_SOURCE,
       ));
     }

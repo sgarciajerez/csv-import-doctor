@@ -162,6 +162,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(app.locator('body')).toContainText('This product-start row repeats the handle from row 2.');
 
+  const productHandleCharacters = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-handle-characters.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-handle-characters.csv',
+    mimeType: 'text/csv',
+    buffer: productHandleCharacters,
+  });
+  await expect(app.locator('body')).toContainText('This product handle contains characters outside Shopify’s documented letters, numbers, and hyphens.');
+
   const inventoryDependencies = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-inventory-dependencies.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-inventory-dependencies.csv',

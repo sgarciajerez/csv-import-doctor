@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.37`
+Profile version: `shopify-product-csv-2026-10-16.38`
+
+Changes in `.38`: retain the whitespace warning for nonblank URL handles and add a separate advisory for punctuation or symbols outside Shopify's documented letters, numbers, and hyphens. The check permits Unicode letters/numbers, preserves all values, and does not claim that Shopify rejects a value containing other characters.
 
 Changes in `.37`: treat a nonblank `Title` as the start of a product record even when its `URL handle` repeats the preceding row. Warn when that product-start row reuses a handle already seen for another product-start row. Continuation rows with a blank `Title` and repeated handle remain valid. Shopify describes URL handles as unique product identifiers; the warning does not claim that repeated handles necessarily make the import fail, and all supplied values are preserved.
 
@@ -43,7 +45,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - Shopify's current guidance distinguishes required columns for product creation from updates; it also documents backward compatibility for older column names without listing all aliases on the current page. Do not infer an alias without a verified source/example.
 - For creating products, `Title` is the only always-required column; adding variants also requires `URL handle`.
 - For updates, `URL handle` and `Title` are required. Variant data can depend on `Option1 name` and `Option1 value`.
-- Shopify says valid URL handles can contain letters, dashes, and numbers, and cannot contain spaces. The app warns on whitespace only and preserves the input; it does not reject other characters based on inference.
+- Shopify says valid URL handles can contain letters, dashes, and numbers, and cannot contain spaces. The app warns on whitespace and, separately, on punctuation or symbols outside Unicode letters, numbers, and hyphens. Both are advisories only; all values remain unchanged.
 - Shopify limits each product to 250 tags, represented as comma-separated values in the `Tags` cell. The app warns above 250 non-empty entries on product-start rows and preserves the original cell.
 - Shopify recommends avoiding accented characters and symbols in tags. The app currently detects accented Latin letters only and shows an informational recommendation; it does not classify them as invalid or propose changing language-specific tag text. Other symbols are not diagnosed because the guide does not define a precise character set for them.
 - Shopify supports up to 20 barcodes per product or variant. In the current `Barcodes` column, semicolons separate values while `\\`, `\;`, and `\:` escape literal backslashes, semicolons, and colons. The app counts unescaped semicolons and preserves the cell.
@@ -88,7 +90,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 | --- | --- | --- |
 | `Title` | Current product header; required for creation and update | Validate presence and product-start row value according to mode |
 | `Product category` | Shopify taxonomy category ID or full standard category breadcrumb | Check category-ID-shaped values against pinned release `2026-08`; report unknown IDs as informational only because the merchant's taxonomy may be newer. Do not validate breadcrumbs because they can be localized. |
-| `URL handle` | Shopify says handles can contain letters, dashes, and numbers, but cannot contain spaces | Warn on whitespace in a nonblank value; preserve it and avoid inferring restrictions beyond the documented space constraint |
+| `URL handle` | Shopify says handles can contain letters, dashes, and numbers, but cannot contain spaces | Warn on whitespace and separately on punctuation/symbols outside Unicode letters, numbers, and hyphens; preserve the value and do not claim import failure |
 | `Tags` | Comma-separated tags; maximum 250 per product; avoid accented characters and symbols | Count non-empty entries and warn above 250; inform on accented Latin characters as advisory only; preserve all tag text |
 | `Barcodes` | Up to 20 codes per product or variant, separated by semicolons; backslash escapes special characters | Count values while respecting escape sequences; warn over 20 and preserve the cell |
 | `Collection` | One collection per product; maximum value length 255 characters | Warn when a product-start row exceeds 255 Unicode code points; preserve the value |
