@@ -189,6 +189,24 @@ describe('validateShopifyProductCsv', () => {
     }
   });
 
+  it('recognizes the pinned Shopify product template headers without typo or unknown-header warnings', () => {
+    const parsed = parseCsv(currentProductHeadersFixture);
+    expect(parsed.headers).toContain('Title');
+    expect(parsed.headers).toContain('URL handle');
+
+    const issues = validateShopifyProductCsv(parsed, { mode: 'create' });
+    const headerClassificationIssues = issues.filter((issue) => [
+      'probable-header-typo',
+      'unrecognized-product-header',
+      'header-case-mismatch',
+      'header-whitespace',
+      'unsupported-product-option-column',
+      'unsupported-product-media-column',
+    ].includes(issue.ruleId));
+
+    expect(headerClassificationIssues).toEqual([]);
+  });
+
   it('enforces the diagnostic contract and catalog across every CSV fixture and import mode', () => {
     const fixtureDirectory = new URL('../../../fixtures/', import.meta.url);
     const fixtureNames = readdirSync(fixtureDirectory).filter((name) => name.endsWith('.csv')).sort();

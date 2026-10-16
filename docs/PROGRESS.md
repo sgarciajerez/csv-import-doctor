@@ -50,6 +50,7 @@
 ## Phase 5 - Requisitos 10/10 y precisiÃ³n del CSV Shopify
 
 - [x] Creado `docs/MVP_COMMERCIAL_READINESS.md` con criterios de salida diferenciados para un piloto limitado y una venta pública, basado en la revisión actual de distribución, billing y App Store de Shopify. Mantiene como decisiones pendientes del propietario el canal, el modelo de precio y la autorización para la importación de prueba. La app aún no está lista para producción: usa URLs `example.com` y la política de privacidad requiere datos operativos reales.
+- [x] La cabecera fijada de la plantilla oficial Shopify queda cubierta por una prueba de contrato: los nombres actuales, variantes de plantilla descargable y ejemplos dinámicos de Markets/metafields no deben producir avisos de errata, columna desconocida, mayúsculas, espacios ni columnas no soportadas. Las 103 pruebas del core pasan. La comparación contra la URL oficial sigue siendo una revisión periódica, no una dependencia de CI.
 
 - [x] Detallados los requisitos R10-01 a R10-10, con prioridades, criterios de aceptaciÃ³n y fuentes, en `docs/REQUIREMENTS_10.md`.
 - [x] AÃ±adida una instrucciÃ³n normativa en `CSV_IMPORT_DOCTOR_CODEX.md` para que Codex y agentes futuros lean los requisitos, prioricen P0 y registren evidencia.

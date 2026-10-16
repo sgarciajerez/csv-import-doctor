@@ -4,6 +4,8 @@ Profile version: `shopify-product-csv-2026-10-16.62`
 
 Template verification on 2026-10-16: downloaded Shopify's live `product_template.csv` linked from the product CSV guide. Its 61 published headers match the first 61 headers in `fixtures/shopify-product-current-headers.csv` exactly; the fixture then adds documented dynamic-market/metafield examples and the import-only `Collection` column. No header drift was found.
 
+The pinned template fixture is also a unit-test contract: all current/template spellings and its dynamic market/metafield examples must avoid typo, unknown-header, capitalization, whitespace, unsupported-option, and unsupported-media findings. This catches regressions in recognition of the exact published template, but does not automatically fetch Shopify's source during CI.
+
 Taxonomy verification on 2026-10-16: Shopify's [release list](https://github.com/Shopify/product-taxonomy/releases) still marks `2026-08` as the latest stable release; the rolling `2026-11-unstable` dataset is not used for ID membership checks. Keep the bundled IDs pinned to `2026-08` until Shopify publishes a newer stable release.
 
 Changes in `.62`: warn locally when a `Product image URL`, legacy `Image Src`, or `Variant image URL` matches a recognizable Google Drive or Dropbox preview-link pattern. Shopify documents that cloud-storage sharing links can open preview pages instead of the image file and that these links can fail to import. This is a heuristic advisory, not a reachability check; it does not request or modify URLs, and direct-download patterns such as Google Drive `uc?export=download`, Dropbox `raw=1`, and `dl=1` are not flagged.
