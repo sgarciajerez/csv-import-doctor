@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.47`
+Profile version: `shopify-product-csv-2026-10-16.48`
+
+Changes in `.48`: when the `Variant Barcodes` spelling from Shopify's downloadable template appears alongside another barcode header spelling, show a sourced warning to review the columns. Shopify explicitly says `Barcode` and `Barcodes` cannot both appear, but does not document how `Variant Barcodes` interacts with the other headers; therefore, only the documented pair remains an error, and the template-spelling combination is not described as rejected.
 
 Changes in `.47`: reconcile the recognized-header matrix with the current downloadable Shopify product template checked on 2026-10-16. Preserve and recognize its exact `Variant Barcodes`, `OptionN Linked To`, `Tax code`, and unit-price measure headers even where the guide's column table uses different names or doesn't describe a value rule. Apply existing barcode-count and `LinkedTo`-format checks to the corresponding template spellings. Do not infer validation rules for tax codes or unit-price measures.
 

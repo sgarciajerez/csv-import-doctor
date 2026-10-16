@@ -134,6 +134,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   expect(narrowLayout.documentOverflows).toBe(false);
   expect(narrowLayout.previewHeaderCount).toBe(20);
   expect(narrowLayout.tableWrapperFitsViewport).toBe(true);
+
+  const barcodeHeaderOverlap = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-barcode-header-overlap.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-barcode-header-overlap.csv',
+    mimeType: 'text/csv',
+    buffer: barcodeHeaderOverlap,
+  });
+  await expect(app.locator('body')).toContainText('Review the barcode columns; multiple header spellings may describe the same barcode data.');
   await page.setViewportSize({ width: 1280, height: 900 });
 
   const fixture = await readFile(resolve(process.cwd(), '..', 'fixtures', 'e2e-review.csv'));

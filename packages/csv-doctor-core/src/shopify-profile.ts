@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.47';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.48';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -56,6 +56,7 @@ const RECOMMENDATION_RULES = new Set([
   'market-compare-at-requires-fixed-price',
   'unsupported-product-media-column',
   'unrecognized-market-included-value',
+  'ambiguous-barcode-template-headers',
 ]);
 const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'URL handle': ['Handle'],
@@ -574,7 +575,10 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       'Add the current URL handle header, or use the documented exact legacy Handle header, so Shopify can match each product being updated.',
     ));
   }
-  if (headerIndex(csv.headers, 'Barcode') !== undefined && headerIndex(csv.headers, 'Barcodes') !== undefined) {
+  const hasSingularBarcodeHeader = headerIndex(csv.headers, 'Barcode') !== undefined;
+  const hasCurrentPluralBarcodeHeader = csv.headers.includes('Barcodes');
+  const hasTemplatePluralBarcodeHeader = csv.headers.includes('Variant Barcodes');
+  if (hasSingularBarcodeHeader && hasCurrentPluralBarcodeHeader) {
     issues.push(makeIssue(
       'barcode-columns-conflict',
       'error',
@@ -582,6 +586,16 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       1,
       'Barcode / Barcodes',
       'Shopify documents the singular Barcode column as an older header and says a file containing both Barcode and Barcodes fails to import.',
+    ));
+  } else if ((hasSingularBarcodeHeader || hasCurrentPluralBarcodeHeader) && hasTemplatePluralBarcodeHeader) {
+    issues.push(makeIssue(
+      'ambiguous-barcode-template-headers',
+      'warning',
+      'Review the barcode columns; multiple header spellings may describe the same barcode data.',
+      1,
+      csv.headers.filter((header) => ['Barcode', 'Variant Barcode', 'Barcodes', 'Variant Barcodes'].includes(header)).join(' / '),
+      'Shopify states that a product CSV containing both singular `Barcode` and plural `Barcodes` fails to import. The downloadable product template uses `Variant Barcodes`, but Shopify does not document how that spelling interacts with the other barcode headers. Confirm which column is intended; the app preserves all columns and does not assert that Shopify will reject this combination.',
+      PRODUCT_CSV_SOURCE,
     ));
   }
 
