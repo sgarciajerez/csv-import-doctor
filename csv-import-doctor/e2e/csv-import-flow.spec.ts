@@ -580,6 +580,27 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     'https://help.shopify.com/en/manual/b2b/catalogs/creating-catalogs',
   );
 
+  const customerCsv = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-customer.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-customer.csv',
+    mimeType: 'text/csv',
+    buffer: customerCsv,
+  });
+  await expect(appBody).toContainText('This looks like a Shopify customer CSV; product checks were skipped.');
+  await expect(app.getByRole('link', { name: /Fuente de Shopify/ })).toHaveAttribute(
+    'href',
+    'https://help.shopify.com/en/manual/customers/import-export-customers',
+  );
+
+  const unrelatedCsv = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-non-product.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-non-product.csv',
+    mimeType: 'text/csv',
+    buffer: unrelatedCsv,
+  });
+  await expect(appBody).toContainText('No Shopify product CSV headers were recognized; product checks were skipped.');
+  await expect(appBody).not.toContainText('Shopify product CSV files use commas between columns');
+
   const excessiveTags = Array.from({ length: 251 }, (_, index) => `tag-${index}`).join(',');
   await app.locator('input[type="file"]').setInputFiles({
     name: 'tags-over-limit.csv',

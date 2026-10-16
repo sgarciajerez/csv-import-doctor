@@ -1,11 +1,12 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.59';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.60';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
 const B2B_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/b2b/catalogs/creating-catalogs';
+const CUSTOMER_CSV_SOURCE = 'https://help.shopify.com/en/manual/customers/import-export-customers';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
 const MAX_SHOPIFY_PRODUCT_CSV_BYTES = 15_000_000;
 const MAX_SHOPIFY_PRODUCT_TAGS = 250;
@@ -22,6 +23,8 @@ const RECOMMENDATION_RULES = new Set([
   'inventory-csv-format-detected',
   'inventory-csv-format-possible',
   'market-catalog-csv-format-detected',
+  'customer-csv-format-detected',
+  'product-csv-format-not-recognized',
   'legacy-product-headers-detected',
   'update-overwrite-blank-semantics',
   'variant-option-change-may-replace-ids',
@@ -442,6 +445,57 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     return issues;
   }
 
+  const customerSpecificHeaders = [
+    'first name',
+    'last name',
+    'phone',
+    'accepts email marketing',
+    'accepts sms marketing',
+    'accepts whatsapp marketing',
+    'tax exempt',
+    'tags',
+    'total spent',
+    'total orders',
+    'note',
+  ];
+  const hasCustomerAddressHeader = [...normalizedHeaders].some((header) => header.startsWith('default address '));
+  const hasCustomerMetafieldHeader = csv.headers.some((header) => header.trim().toLowerCase().startsWith('customer.metafields.'));
+  const isCustomerCsv = normalizedHeaders.has('email')
+    && (customerSpecificHeaders.some((header) => normalizedHeaders.has(header))
+      || hasCustomerAddressHeader
+      || hasCustomerMetafieldHeader);
+
+  if (isCustomerCsv) {
+    issues.push(makeIssue(
+      'customer-csv-format-detected',
+      'warning',
+      'This looks like a Shopify customer CSV; product checks were skipped.',
+      1,
+      'Email',
+      'Shopify customer CSVs use a separate schema for customer profiles, marketing preferences, addresses, and customer metafields. Analyze this file with a customer-specific profile when available.',
+      CUSTOMER_CSV_SOURCE,
+    ));
+    return issues;
+  }
+
+  const looksLikeProductCsv = titleHeaderIndex >= 0 || handleHeaderIndex >= 0 || hasProductSpecificColumns;
+  const hasLikelyProductHeaderTypo = !looksLikeProductCsv && csv.headers.some((header) => {
+    const normalized = header.trim().toLowerCase();
+    return [...STATIC_PRODUCT_HEADERS].some((knownHeader) => differsByOneEdit(normalized, knownHeader.toLowerCase()));
+  });
+  if (!couldBeSingleLocationInventoryCsv && !looksLikeProductCsv && !hasLikelyProductHeaderTypo) {
+    issues.push(makeIssue(
+      'product-csv-format-not-recognized',
+      'info',
+      'No Shopify product CSV headers were recognized; product checks were skipped.',
+      1,
+      undefined,
+      'This may be another Shopify CSV format or a custom file. Confirm the intended import type and compare product files with Shopify’s current product CSV template. If a product header is misspelled, confirm its intended name before changing it.',
+      PRODUCT_CSV_SOURCE,
+    ));
+    return issues;
+  }
+
   if (couldBeSingleLocationInventoryCsv) {
     issues.push(makeIssue(
       'inventory-csv-format-possible',
@@ -454,7 +508,6 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     ));
   }
 
-  const looksLikeProductCsv = titleHeaderIndex >= 0 || handleHeaderIndex >= 0 || hasProductSpecificColumns;
   if (!couldBeSingleLocationInventoryCsv
     && looksLikeProductCsv
     && (options.fileSizeBytes ?? 0) > MAX_SHOPIFY_PRODUCT_CSV_BYTES) {
