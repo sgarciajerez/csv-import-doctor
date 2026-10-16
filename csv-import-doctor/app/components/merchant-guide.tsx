@@ -43,6 +43,29 @@ export function MerchantGuide() {
         </s-paragraph>
       </s-section>
 
+      <s-section heading="Preguntas frecuentes">
+        <s-unordered-list>
+          <s-list-item>
+            <strong>¿La app importa el CSV en Shopify?</strong> No. Descarga el archivo revisado y súbelo desde el importador de Shopify.
+          </s-list-item>
+          <s-list-item>
+            <strong>¿Un análisis sin incidencias garantiza que la importación funcione?</strong> No. El resultado depende también de la configuración y los datos de la tienda; revisa cualquier aviso y confirma el resultado en Shopify.
+          </s-list-item>
+          <s-list-item>
+            <strong>¿Se envía mi archivo al servidor?</strong> No. El análisis y las reparaciones se hacen en el navegador. El servidor sí conserva datos técnicos de la sesión de Shopify; consulta la página de privacidad para ver cuáles.
+          </s-list-item>
+          <s-list-item>
+            <strong>¿Puedo analizar un CSV de más de 15 MB?</strong> Sí, hasta el límite local de 20 MB y 100.000 filas, pero Shopify no acepta para importar un CSV de productos que supere 15 MB.
+          </s-list-item>
+          <s-list-item>
+            <strong>¿Puedo validar el inventario de varias ubicaciones?</strong> No con el CSV de productos. Usa el formato de CSV de inventario de Shopify, que tiene un esquema distinto.
+          </s-list-item>
+          <s-list-item>
+            <strong>¿Qué debo comprobar antes de actualizar productos?</strong> Conserva el original, confirma la opción de sobrescritura en Shopify y revisa los valores del CSV exportado, especialmente las celdas vacías.
+          </s-list-item>
+        </s-unordered-list>
+      </s-section>
+
       <s-section>
         <s-button variant="tertiary" onClick={() => window.history.back()}>Volver al analizador</s-button>
       </s-section>

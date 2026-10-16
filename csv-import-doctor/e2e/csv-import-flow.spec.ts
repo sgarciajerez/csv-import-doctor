@@ -52,6 +52,8 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect.poll(() => appFrame.url()).toContain('/guide');
   await expect(app.getByText(/No importa ni modifica productos en Shopify/i)).toBeVisible();
   await expect(app.getByText(/El navegador analiza hasta 20 MB y 100.000 filas/i)).toBeVisible();
+  await expect(app.getByText(/Un análisis sin incidencias garantiza que la importación funcione/i)).toBeVisible();
+  await expect(app.getByText(/No con el CSV de productos/i)).toBeVisible();
   await app.getByRole('button', { name: 'Volver al analizador' }).click();
   await expect(app.getByLabel('Tipo de importación')).toBeVisible();
 
