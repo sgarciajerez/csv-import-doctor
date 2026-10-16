@@ -170,6 +170,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(app.locator('body')).toContainText('This product handle contains characters outside Shopify’s documented letters, numbers, and hyphens.');
 
+  const moreThanThreeOptions = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-more-than-three-options.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-more-than-three-options.csv',
+    mimeType: 'text/csv',
+    buffer: moreThanThreeOptions,
+  });
+  await expect(app.locator('body')).toContainText('Shopify supports up to three product options; "Option4 name" is outside that limit.');
+
   const inventoryDependencies = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-inventory-dependencies.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-inventory-dependencies.csv',

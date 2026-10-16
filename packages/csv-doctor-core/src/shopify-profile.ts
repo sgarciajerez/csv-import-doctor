@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.38';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.39';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -49,6 +49,7 @@ const RECOMMENDATION_RULES = new Set([
   'invalid-option-linkedto-format',
   'duplicate-product-handle',
   'product-handle-contains-undocumented-characters',
+  'unsupported-product-option-column',
 ]);
 const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'URL handle': ['Handle'],
@@ -440,6 +441,18 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   csv.headers.forEach((header) => {
     const trimmed = header.trim();
     if (!trimmed || isVariantMetafieldHeader(header)) return;
+    const unsupportedOptionHeader = /^Option(\d+) (?:name|value|LinkedTo)$/.exec(header);
+    if (unsupportedOptionHeader && Number(unsupportedOptionHeader[1]) > 3) {
+      issues.push(makeIssue(
+        'unsupported-product-option-column',
+        'warning',
+        `Shopify supports up to three product options; "${header}" is outside that limit.`,
+        1,
+        header,
+        'Shopify’s product CSV guide documents Option1, Option2, and Option3 and states that a product can have at most three options. Verify the source column or map its data manually; the app preserves the header and values and does not claim a specific importer outcome.',
+      ));
+      return;
+    }
     if (STATIC_PRODUCT_HEADERS.has(header) || hasExactDynamicProductHeader(header)) return;
 
     const normalized = trimmed.toLocaleLowerCase();
