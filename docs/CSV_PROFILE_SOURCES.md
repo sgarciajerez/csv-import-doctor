@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.31`
+Profile version: `shopify-product-csv-2026-10-16.32`
+
+Changes in `.32`: show an informational recommendation when product tags contain accented Latin characters, following Shopify's advice to avoid accented characters in tags. Detection handles composed and decomposed Unicode forms. Shopify does not document these tags as import failures; the app preserves the values and does not suggest deletion or translation.
 
 Changes in `.31`: show one informational diagnostic when a product CSV contains a nonblank `Inventory quantity`, because Shopify documents that field as applying only to single-location stores. The app cannot inspect store locations; it links the separate inventory CSV guidance for merchants managing multiple locations and does not alter data.
 
@@ -31,6 +33,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - For updates, `URL handle` and `Title` are required. Variant data can depend on `Option1 name` and `Option1 value`.
 - Shopify says valid URL handles can contain letters, dashes, and numbers, and cannot contain spaces. The app warns on whitespace only and preserves the input; it does not reject other characters based on inference.
 - Shopify limits each product to 250 tags, represented as comma-separated values in the `Tags` cell. The app warns above 250 non-empty entries on product-start rows and preserves the original cell.
+- Shopify recommends avoiding accented characters and symbols in tags. The app currently detects accented Latin letters only and shows an informational recommendation; it does not classify them as invalid or propose changing language-specific tag text. Other symbols are not diagnosed because the guide does not define a precise character set for them.
 - Shopify supports up to 20 barcodes per product or variant. In the current `Barcodes` column, semicolons separate values while `\\`, `\;`, and `\:` escape literal backslashes, semicolons, and colons. The app counts unescaped semicolons and preserves the cell.
 - Shopify allows one collection per product and limits the `Collection` value to 255 characters. The app warns above that length on product-start rows, counts Unicode code points, and preserves the value.
 - Shopify allows up to 250 product images and instructs CSV authors to use one row per image. The app counts nonblank `Product image URL`/`Image Src` cells across rows grouped by handle and warns once at the 251st entry. It does not include `Variant image URL` references because those can point to an image already listed for the product; consequently the warning is a lower-scope check when only variant-image URLs are supplied.
@@ -73,7 +76,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 | --- | --- | --- |
 | `Title` | Current product header; required for creation and update | Validate presence and product-start row value according to mode |
 | `URL handle` | Shopify says handles can contain letters, dashes, and numbers, but cannot contain spaces | Warn on whitespace in a nonblank value; preserve it and avoid inferring restrictions beyond the documented space constraint |
-| `Tags` | Comma-separated tags; maximum 250 per product | Count non-empty comma-separated entries on product-start rows; warn above the limit and preserve the cell |
+| `Tags` | Comma-separated tags; maximum 250 per product; avoid accented characters and symbols | Count non-empty entries and warn above 250; inform on accented Latin characters as advisory only; preserve all tag text |
 | `Barcodes` | Up to 20 codes per product or variant, separated by semicolons; backslash escapes special characters | Count values while respecting escape sequences; warn over 20 and preserve the cell |
 | `Collection` | One collection per product; maximum value length 255 characters | Warn when a product-start row exceeds 255 Unicode code points; preserve the value |
 | `URL handle` | Current product header; required for updates and variant/image continuation rows | Validate according to mode and row content |

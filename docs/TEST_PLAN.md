@@ -11,6 +11,7 @@ Initial core coverage:
 - Measure near-20 MB local long-cell and 100,001-row workflows in E2E; assert that the 15 MB Shopify limit is diagnosed, the 20 MB local cap is enforced, and preview truncation does not alter exported CSV content.
 - Create/update profile requirements and product variant continuation rows.
 - Sourced field limits at exact boundary and over-limit: URL-handle whitespace, 255-character Collection values, 250 comma-separated product tags, and 20 semicolon-separated barcodes including escaped separators; unit tests confirm the analyzer preserves the original cell, and E2E confirms limit messages are visible.
+- Tags: detect accented Latin characters in composed and decomposed Unicode spellings; report as information in create and update without claiming import failure, changing, translating, or removing values; leave plain unaccented tags clear.
 - Product image maximum at 250/251 rows for one handle, including continuation rows; confirm only one warning is emitted and values are preserved. Verify variant image references are documented as outside this count.
 - Image URLs: test absolute HTTPS, HTTP, relative/malformed, and embedded credentials for product and variant image columns; verify the app never requests the supplied image URL and never claims public reachability is verified.
 - Product image filename suffixes: test `_thumb`, `_small`, `_medium` with and without extensions, ignore query-string matches, preserve URLs, and keep variant image references outside this product-field-specific check.

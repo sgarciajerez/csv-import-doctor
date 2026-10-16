@@ -1,6 +1,6 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.31';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.32';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -25,6 +25,7 @@ const RECOMMENDATION_RULES = new Set([
   'inventory-quantity-missing-with-tracker',
   'inventory-quantity-without-tracker',
   'inventory-quantity-single-location-only',
+  'product-tags-contain-accented-characters',
   'blank-price-may-fail-import',
   'invalid-product-money-format',
   'custom-fulfillment-service-handle-format',
@@ -79,6 +80,10 @@ function headerIndex(headers: string[], canonical: string): number | undefined {
 
 function unicodeCodePointLength(value: string): number {
   return [...value].length;
+}
+
+function containsAccentedLatinCharacter(value: string): boolean {
+  return /\p{Script=Latin}\p{M}/u.test(value.normalize('NFD'));
 }
 
 function countBarcodeEntries(value: string): number {
@@ -740,6 +745,17 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
             visibleRow,
             csv.headers[tagsIndex],
             'Shopify documents a maximum of 250 tags per product and separates tags with commas in the CSV cell. This count ignores empty comma-separated entries; check the separators and remove excess tags manually. The original cell is preserved.',
+            PRODUCT_CSV_SOURCE,
+          ));
+        }
+        if (containsAccentedLatinCharacter(tagsValue)) {
+          issues.push(makeIssue(
+            'product-tags-contain-accented-characters',
+            'info',
+            'Shopify recommends avoiding accented characters in product tags.',
+            visibleRow,
+            csv.headers[tagsIndex],
+            'Shopify recommends avoiding accented characters in tags, but does not document an import failure for them. Review whether the recommendation fits this catalog; the app preserves the original tags and does not propose a translation or removal.',
             PRODUCT_CSV_SOURCE,
           ));
         }
