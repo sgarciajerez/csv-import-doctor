@@ -22,6 +22,12 @@ export function meta() {
 const MAX_FILE_BYTES = 20_000_000;
 const MAX_VISIBLE_ITEMS = 100;
 const MAX_PREVIEW_CELL_LENGTH = 500;
+const NON_PRODUCT_FORMAT_RULES = new Set([
+  'inventory-csv-format-detected',
+  'market-catalog-csv-format-detected',
+  'customer-csv-format-detected',
+  'product-csv-format-not-recognized',
+]);
 
 const buttonStyle: CSSProperties = {
   border: '1px solid #8c9196',
@@ -90,6 +96,7 @@ export default function Index() {
   const incompleteParse = hasIncompleteParse(parseIssues);
   const delimiterUnconfirmed = needsDelimiterConfirmation && !manualDelimiter;
   const exportBlocked = incompleteParse || delimiterUnconfirmed || isAnalyzing;
+  const productChecksSkipped = issues.some((issue) => NON_PRODUCT_FORMAT_RULES.has(issue.ruleId));
   const previewRows = csv?.rows.slice(0, 10) ?? [];
   const previewColumnCount = csv
     ? Math.min(20, Math.max(csv.headers.length, ...previewRows.map((row) => row.length)))
@@ -248,8 +255,10 @@ export default function Index() {
 
   function exportCsv() {
     if (!csv) return;
-    const result = serializeCsv(csv, { delimiter: ',', newline: '\n' });
-    const baseName = filename.replace(/\.csv$/i, '') || 'shopify-products';
+    const result = productChecksSkipped
+      ? serializeCsv(csv)
+      : serializeCsv(csv, { delimiter: ',', newline: '\n' });
+    const baseName = filename.replace(/\.csv$/i, '') || (productChecksSkipped ? 'csv-import' : 'shopify-products');
     downloadFile(result.content, 'text/csv;charset=utf-8', `${baseName}-reviewed.csv`);
   }
 
@@ -380,7 +389,9 @@ export default function Index() {
           </s-section>
 
           <s-section heading="Exportación">
-            <p>El CSV conserva los valores para Shopify. Una mitigación de fórmulas alteraría celdas y podría cambiar el resultado de la importación.</p>
+            {productChecksSkipped
+              ? <p>No se aplicó el perfil de productos. El archivo exportado conserva el separador de origen y los valores de las celdas.</p>
+              : <p>El CSV conserva los valores para Shopify. Una mitigación de fórmulas alteraría celdas y podría cambiar el resultado de la importación.</p>}
             {delimiterUnconfirmed && <p role="alert">Descarga bloqueada: confirma el separador antes de exportar este archivo.</p>}
             {incompleteParse && <p role="alert">Descarga bloqueada: el análisis detectó un archivo vacío, un límite superado o sintaxis CSV inválida.</p>}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

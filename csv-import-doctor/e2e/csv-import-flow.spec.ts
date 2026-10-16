@@ -600,6 +600,12 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(appBody).toContainText('No Shopify product CSV headers were recognized; product checks were skipped.');
   await expect(appBody).not.toContainText('Shopify product CSV files use commas between columns');
+  await expect(appBody).toContainText('El archivo exportado conserva el separador de origen y los valores de las celdas.');
+  const unrelatedCsvDownloadPromise = page.waitForEvent('download');
+  await app.getByRole('button', { name: 'Descargar CSV revisado' }).click();
+  const unrelatedCsvDownload = await unrelatedCsvDownloadPromise;
+  const unrelatedCsvContent = await readFile(await unrelatedCsvDownload.path(), 'utf8');
+  expect(unrelatedCsvContent).toBe('Order Number;Net Sales\r\n1001;29.99');
 
   const excessiveTags = Array.from({ length: 251 }, (_, index) => `tag-${index}`).join(',');
   await app.locator('input[type="file"]').setInputFiles({
