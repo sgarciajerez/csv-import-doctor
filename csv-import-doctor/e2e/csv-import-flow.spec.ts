@@ -48,6 +48,18 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(privacyPage.getByText(/tokens de acceso y renovación/i)).toBeVisible();
   await privacyPage.close();
 
+  const importMode = app.getByLabel('Tipo de importación');
+  await importMode.focus();
+  await page.keyboard.press('Tab');
+  await expect(app.locator('input[type="file"]')).toBeFocused();
+  await importMode.focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(importMode).toHaveValue('update');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Enter');
+  await expect(importMode).toHaveValue('create');
+
   const fixture = await readFile(resolve(process.cwd(), '..', 'fixtures', 'e2e-review.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'e2e-review.csv',
