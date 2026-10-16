@@ -747,7 +747,7 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     buffer: Buffer.from('Title,Vendor\nMug,Example', 'utf8'),
   });
   const analysisStatus = app.getByRole('status').first();
-  await expect(analysisStatus).toHaveText('Analizando el archivo localmente.');
+  await expect(analysisStatus).toHaveText('Análisis iniciado en este navegador.');
   await app.getByRole('button', { name: 'Cancelar' }).click();
   await expect(analysisStatus).toHaveText('Análisis cancelado.');
   expect(await app.locator('body').evaluate((body) => {
@@ -760,7 +760,7 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     mimeType: 'text/csv',
     buffer: Buffer.from('Title,Vendor\nMug,Example', 'utf8'),
   });
-  await expect(analysisStatus).toHaveText('Analizando el archivo localmente.');
+  await expect(analysisStatus).toHaveText('Análisis iniciado en este navegador.');
   await app.getByRole('link', { name: 'Guía rápida de uso' }).click();
   await expect.poll(() => appFrame.url()).toContain('/guide');
   expect(await app.locator('body').evaluate((body) => {
@@ -797,12 +797,15 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   const nearLimitCsv = Buffer.from(`Title,Description\nMug,"${longDescription}"\n`, 'utf8');
   expect(nearLimitCsv.byteLength).toBeLessThanOrEqual(20_000_000);
   const nearLimitStartedAt = performance.now();
-  await app.locator('input[type="file"]').setInputFiles({
+  const nearLimitUpload = app.locator('input[type="file"]').setInputFiles({
     name: 'near-local-limit.csv',
     mimeType: 'text/csv',
     buffer: nearLimitCsv,
   });
-  await expect(app.getByText('Analizando la estructura CSV…')).toBeVisible();
+  await Promise.all([
+    nearLimitUpload,
+    expect(app.getByRole('status').filter({ hasText: 'Analizando la estructura CSV…' })).toBeVisible(),
+  ]);
   await expect(app.getByRole('status').first()).toContainText('Análisis completado: 1 filas');
   await expect(app.getByText('Shopify product CSV files cannot exceed 15 MB; split this file before importing.')).toBeVisible();
   await expect(app.locator('a[href="https://help.shopify.com/en/manual/products/import-export/import-products"]')).toBeVisible();
