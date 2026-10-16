@@ -55,7 +55,7 @@ Initial core coverage:
 - Gift cards: verify `Gift card=true` produces a sourced blocking diagnostic in create mode, does not produce that diagnostic in update mode, and preserves the cell; confirm the restriction remains distinct from boolean spelling checks.
 - Inventory tracking: warn when a nonblank quantity is paired with an explicitly blank current or verified legacy tracker header; preserve the cells, do not flag omitted tracker columns or conflicting current/legacy aliases, and keep valid tracked rows clear.
 - Single-location inventory field: emit one file-level informational note when at least one product `Inventory quantity` value is nonblank; do not emit it when all values are blank or when a separate inventory CSV is detected.
-- Verify unknown columns and repeated SKUs are preserved and are not fatal errors.
+- Verify unknown columns are preserved. Repeated exact SKUs within one unambiguous SKU column produce an informational recommendation in create/update mode, while case-different values, blanks, and simultaneous current/legacy SKU columns do not; all supplied values remain unchanged and no import failure is asserted.
 - CSV parse/serialize round-trip preserves a deterministic edge-case cell matrix with both comma and semicolon delimiters, including empty cells, embedded delimiters, quotes, LF/CR/CRLF, boundary spaces, and Unicode; formula-like values remain unmodified absent an explicit export policy.
 - Repairs: apply only selected proposals to a copy, verify the source value and column header still match, reject stale proposals, revalidate, and undo without overwriting a changed or differently headed target.
 - Browser bundle has no Node-only imports; analysis makes no network requests.

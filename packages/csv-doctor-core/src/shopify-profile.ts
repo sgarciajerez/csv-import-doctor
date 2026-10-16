@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.65';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.66';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_MEDIA_SOURCE = 'https://help.shopify.com/en/manual/products/product-media/add-media';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
@@ -64,6 +64,7 @@ const RECOMMENDATION_RULES = new Set([
   'variant-barcode-count-exceeds-limit',
   'duplicate-barcode-value',
   'barcode-value-format-invalid',
+  'duplicate-sku-value',
   'collection-name-exceeds-limit',
   'product-image-count-exceeds-limit',
   'image-url-not-public-https',
@@ -738,6 +739,9 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     .filter((index): index is number => index !== undefined);
   const requiresShippingIndex = headerIndex(csv.headers, 'Requires shipping');
   const skuIndex = headerIndex(csv.headers, 'SKU');
+  const skuIndices = csv.headers
+    .map((header, index) => header === 'SKU' || header === 'Variant SKU' ? index : -1)
+    .filter((index) => index >= 0);
   const inventoryTrackerIndex = headerIndex(csv.headers, 'Inventory tracker');
   const inventoryTrackerColumnCount = ['Inventory tracker', ...LEGACY_HEADER_ALIASES['Inventory tracker']!]
     .filter((header) => indices.has(header)).length;
@@ -983,6 +987,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   let anonymousProductCounter = 0;
   const firstVariantRowByCombination = new Map<string, number>();
   const firstProductRowByHandle = new Map<string, number>();
+  const firstSkuRowByValue = new Map<string, number>();
   const productImageEntryCountByGroup = new Map<string, number>();
   const reportedProductImageLimits = new Set<string>();
   csv.rows.forEach((row, index) => {
@@ -995,6 +1000,25 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       columnIndex !== titleIndex && Boolean((value ?? '').trim()));
     const hasOptionValue = optionValueIndices.some((index) => Boolean((row[index] ?? '').trim()));
     const hasVariantData = variantDataIndices.some((index) => Boolean((row[index] ?? '').trim()));
+    if (skuIndices.length === 1) {
+      const sku = row[skuIndices[0]!] ?? '';
+      if (sku.trim()) {
+        const firstSkuRow = firstSkuRowByValue.get(sku);
+        if (firstSkuRow !== undefined) {
+          issues.push(makeIssue(
+            'duplicate-sku-value',
+            'info',
+            `This SKU repeats the value from row ${firstSkuRow} in this CSV.`,
+            visibleRow,
+            csv.headers[skuIndices[0]!],
+            'Shopify recommends unique SKUs for effective tracking and sales reporting. This advisory compares exact nonblank SKU values only within this file; it cannot check other products in your store and does not claim that Shopify will reject the import. The original value is preserved.',
+            'https://help.shopify.com/en/manual/products/details/product-details-page/',
+          ));
+        } else {
+          firstSkuRowByValue.set(sku, visibleRow);
+        }
+      }
+    }
     const requiresShipping = requiresShippingIndex === undefined
       ? ''
       : (row[requiresShippingIndex] ?? '').trim().toLowerCase();

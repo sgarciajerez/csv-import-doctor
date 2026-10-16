@@ -669,6 +669,13 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(appBody).toContainText('One or more barcode values do not match the documented format for their type.');
 
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'duplicate-sku.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Title,URL handle,SKU\nFirst,first,SKU-1\nSecond,second,SKU-1', 'utf8'),
+  });
+  await expect(appBody).toContainText('This SKU repeats the value from row 2 in this CSV.');
+
   const longCollection = 'c'.repeat(256);
   await app.locator('input[type="file"]').setInputFiles({
     name: 'collection-over-limit.csv',
