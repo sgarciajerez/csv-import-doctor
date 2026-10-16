@@ -153,6 +153,8 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   const appBody = app.locator('body');
   await expect(appBody).toContainText('Inventory quantity must be a number.');
   await expect(appBody).toContainText('Continue selling when out of stock must be deny or continue.');
+  await expect(appBody).toContainText('Inventory quantity in a product CSV only applies to stores with one location.');
+  await expect(appBody).toContainText('Inventory quantity in a product CSV only applies to stores with one location.');
   await expect(appBody).toContainText('Inventory is tracked but Inventory quantity is blank.');
   await expect(appBody).toContainText('SKU is required when using a custom fulfillment service.');
   await expect(appBody).toContainText('This custom fulfillment service name may not match Shopify’s handle format guidance.');

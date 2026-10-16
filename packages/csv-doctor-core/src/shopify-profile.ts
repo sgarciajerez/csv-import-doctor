@@ -1,6 +1,6 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.30';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.31';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -24,6 +24,7 @@ const RECOMMENDATION_RULES = new Set([
   'conflicting-header-aliases',
   'inventory-quantity-missing-with-tracker',
   'inventory-quantity-without-tracker',
+  'inventory-quantity-single-location-only',
   'blank-price-may-fail-import',
   'invalid-product-money-format',
   'custom-fulfillment-service-handle-format',
@@ -371,6 +372,17 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const inventoryPolicyIndex = headerIndex(csv.headers, 'Continue selling when out of stock');
   const fulfillmentServiceIndex = headerIndex(csv.headers, 'Fulfillment service');
   const builtInFulfillmentServices = new Set(['manual', 'shipwire', 'webgistix', 'amazon_marketplace_web', 'gift_card']);
+
+  if (inventoryQuantityIndex !== undefined && csv.rows.some((row) => Boolean((row[inventoryQuantityIndex] ?? '').trim()))) {
+    issues.push(makeIssue(
+      'inventory-quantity-single-location-only',
+      'info',
+      'Inventory quantity in a product CSV only applies to stores with one location.',
+      undefined,
+      csv.headers[inventoryQuantityIndex],
+      'Shopify documents that the product CSV Inventory quantity field applies only to stores with a single location. This analyzer cannot inspect your store configuration. For inventory across multiple locations, Shopify provides a separate inventory CSV format; the product data remains unchanged.',
+    ));
+  }
 
   const usedLegacyHeaders = Object.values(LEGACY_HEADER_ALIASES).flat().filter((alias) => indices.has(alias));
   if (usedLegacyHeaders.length > 0) {
