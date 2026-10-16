@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.39';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.40';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -441,7 +441,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   csv.headers.forEach((header) => {
     const trimmed = header.trim();
     if (!trimmed || isVariantMetafieldHeader(header)) return;
-    const unsupportedOptionHeader = /^Option(\d+) (?:name|value|LinkedTo)$/.exec(header);
+    const unsupportedOptionHeader = /^Option(\d+) (?:name|value|LinkedTo)$/i.exec(header);
     if (unsupportedOptionHeader && Number(unsupportedOptionHeader[1]) > 3) {
       issues.push(makeIssue(
         'unsupported-product-option-column',
