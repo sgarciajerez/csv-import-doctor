@@ -31,6 +31,17 @@ describe('repairs', () => {
     expect(result.csv.rows).toEqual([['Mug']]);
   });
 
+  it('skips a proposal when the header at its target column has changed', () => {
+    const source = parseCsv('Title,Vendor\n Mug ,Example Supply');
+    const proposal = proposeWhitespaceRepairs(source)[0]!;
+    const changedHeaders = { ...source, headers: ['Vendor', 'Title'] };
+    const result = applyRepairs(changedHeaders, [proposal], [proposal.id], (draft) => draft.issues);
+
+    expect(result.applied).toEqual([]);
+    expect(result.skipped).toEqual([{ id: proposal.id, reason: 'stale' }]);
+    expect(result.csv.rows).toEqual([[' Mug ', 'Example Supply']]);
+  });
+
   it('undoes the last applied repair batch on a copy and revalidates', () => {
     const original = parseCsv('Title,SKU\n Mug , 123 ');
     const proposals = proposeWhitespaceRepairs(original);
@@ -57,6 +68,18 @@ describe('repairs', () => {
     expect(undone.csv.rows).toEqual([['Different value']]);
     expect(undone.undone).toEqual([]);
     expect(undone.skipped).toEqual([{ id: proposal.id, reason: 'stale' }]);
+  });
+
+  it('does not undo a repair against a different header at its original column', () => {
+    const original = parseCsv('Title,Vendor\n Mug ,Example Supply');
+    const proposal = proposeWhitespaceRepairs(original)[0]!;
+    const applied = applyRepairs(original, [proposal], [proposal.id], (draft) => draft.issues);
+    const changedHeaders = { ...applied.csv, headers: ['Vendor', 'Title'] };
+    const undone = undoRepairs(changedHeaders, applied.applied, (draft) => draft.issues);
+
+    expect(undone.undone).toEqual([]);
+    expect(undone.skipped).toEqual([{ id: proposal.id, reason: 'stale' }]);
+    expect(undone.csv.rows).toEqual([['Mug', 'Example Supply']]);
   });
 });
 

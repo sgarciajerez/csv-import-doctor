@@ -57,7 +57,10 @@ export function applyRepairs(
       skipped.push({ id: proposal.id, reason: 'invalid-target' });
       continue;
     }
-    if (currentRow[proposal.columnIndex] !== proposal.originalValue) {
+    if (
+      csv.headers[proposal.columnIndex] !== proposal.column
+      || currentRow[proposal.columnIndex] !== proposal.originalValue
+    ) {
       skipped.push({ id: proposal.id, reason: 'stale' });
       continue;
     }
@@ -87,7 +90,10 @@ export function undoRepairs(
       skipped.push({ id: repair.id, reason: 'invalid-target' });
       continue;
     }
-    if (currentRow[repair.columnIndex] !== repair.afterValue) {
+    if (
+      csv.headers[repair.columnIndex] !== repair.column
+      || currentRow[repair.columnIndex] !== repair.afterValue
+    ) {
       skipped.push({ id: repair.id, reason: 'stale' });
       continue;
     }

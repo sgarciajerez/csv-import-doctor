@@ -25,6 +25,7 @@ Initial core coverage:
 - Single-location inventory field: emit one file-level informational note when at least one product `Inventory quantity` value is nonblank; do not emit it when all values are blank or when a separate inventory CSV is detected.
 - Verify unknown columns and repeated SKUs are preserved and are not fatal errors.
 - CSV parse/serialize round-trip and formula-like values remain unmodified absent an explicit export policy.
+- Repairs: apply only selected proposals to a copy, verify the source value and column header still match, reject stale proposals, revalidate, and undo without overwriting a changed or differently headed target.
 - Browser bundle has no Node-only imports; analysis makes no network requests.
 - File lifecycle: clear the file input so the same file can be selected again; keep a `File` reference only while an ambiguous delimiter needs reparsing, and release it after ordinary success, confirmed reanalysis, cancellation, parse/runtime failure, or setup failure. A unit test checks the reference-retention policy, and the authenticated E2E exercises confirmed reanalysis. Verify the worker terminates on cancel, unmount, and failure paths.
 - Privacy transparency: verify the embedded UI links to the public privacy page, which discloses browser-only CSV processing, the Shopify session fields actually stored, current empty API scopes, retention behavior, and release-only facts still pending.
