@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.35`
+Profile version: `shopify-product-csv-2026-10-16.36`
+
+Changes in `.36`: with `Inventory tracker=shopify`, emit an error if exactly one of `Continue selling when out of stock` and `Fulfillment service` has a value. Shopify describes these as related fields and warns that partially populated related values can fail import. If neither value is supplied, Shopify applies documented defaults. Other tracker values are not checked by this rule; the analyzer preserves all cells.
 
 Changes in `.35`: for nonblank `Option1/2/3 LinkedTo` values, warn if the value does not use the documented `product.metafields.shopify.{taxonomy_attribute}` form or has an empty attribute key. This does not validate that the attribute exists or is valid for the product category; the value remains unchanged. Shopify also documents that linked `OptionN value` entries use metaobject handles or GIDs rather than display names, but the analyzer does not attempt to distinguish those formats because a valid handle is store-specific.
 

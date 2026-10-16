@@ -1,0 +1,6 @@
+Title,URL handle,Option1 name,Option1 value,Inventory tracker,Continue selling when out of stock,Fulfillment service
+Coat,coat,Size,Small,shopify,continue,
+Coat,coat,Size,Medium,shopify,,manual
+Coat,coat,Size,Large,shopify,,
+Coat,coat,Size,XL,shopify,deny,manual
+Coat,coat,Size,XXL,shipwire,continue,

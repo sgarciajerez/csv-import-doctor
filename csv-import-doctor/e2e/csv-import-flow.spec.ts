@@ -194,6 +194,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(appBody).toContainText("Option1 LinkedTo should use Shopify's documented product.metafields.shopify taxonomy-attribute format.");
 
+  const partialInventoryDependencies = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-inventory-dependencies-partial.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-inventory-dependencies-partial.csv',
+    mimeType: 'text/csv',
+    buffer: partialInventoryDependencies,
+  });
+  await expect(appBody).toContainText('Shopify inventory tracking requires both the inventory policy and fulfillment service when either has a value.');
+
   const inventoryWithoutTracker = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-inventory-without-tracker.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-inventory-without-tracker.csv',

@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.35';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.36';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -973,6 +973,20 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
         'Continue selling when out of stock',
         'Shopify accepts only deny or continue for this field. Correct the value without changing the inventory quantity.',
         'https://help.shopify.com/en/manual/products/import-export/common-import-issues',
+      ));
+    }
+    if (
+      inventoryTracker === 'shopify'
+      && (inventoryPolicy || fulfillmentService)
+      && (!inventoryPolicy || !fulfillmentService)
+    ) {
+      issues.push(makeIssue(
+        'incomplete-inventory-dependency-values',
+        'error',
+        'Shopify inventory tracking requires both the inventory policy and fulfillment service when either has a value.',
+        visibleRow,
+        'Inventory tracker / Continue selling when out of stock / Fulfillment service',
+        'Shopify documents these as related values when Inventory tracker is shopify. If you provide either Continue selling when out of stock or Fulfillment service, provide the other as well; partial related values can make the import fail. When neither is supplied, Shopify applies the documented defaults. The app preserves the row.',
       ));
     }
     if (inventoryTracker && !inventoryQuantity) {
