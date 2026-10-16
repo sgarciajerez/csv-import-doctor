@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.49`
+Profile version: `shopify-product-csv-2026-10-16.50`
+
+Changes in `.50`: replace the open-ended `Google Shopping /` header prefix with an allowlist based on the current Shopify product CSV guide and exact downloadable template headers, including the template's capitalization variants. Documented names include Google Product Category, Gender, Age Group, MPN, Condition, Custom Product, and Custom Labels 0–4; exact template-only spellings such as `Manufacturer part number (MPN)` and `Ad group name` remain supported. A one-edit misspelling now receives the existing low-confidence typo advisory, and an unlisted custom header remains informational and unchanged.
 
 Changes in `.49`: normalize product CSV headers and documented enum values with locale-independent Unicode lowercase conversion. Header classification and duplicate detection must not change with the merchant's browser locale; an explicit Turkish-locale regression test covers ASCII `I` in legacy Shopify headers.
 
@@ -148,6 +150,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 | `Status` | Current product header; when present it needs a value: `active`, `draft`, or `archived` | Validate product-start rows and allowed values |
 | `Gift card` | Gift cards cannot be created through product CSV import; existing gift card details can be edited in bulk | In create mode, error on product-start rows with `true`; do not flag update mode |
 | `Included / [Market]`, `Price / [Market]`, `Compare At Price / [Market]` | Dynamic international market columns; market names replace `[Market]` | Recognize current market header patterns, preserve values, and exclude them from inventory-location heuristics |
+| Google Shopping column names listed in Shopify's current guide and exact `Google Shopping / ...` spellings from the downloadable template | The guide enumerates supported Google Shopping metafields and the template contains exact headings with some capitalization variants | Recognize the documented/template allowlist; suggest a possible typo without auto-renaming when a header is one edit away; report other names as informational unknown headers and preserve all data |
 | `<name> (product.metafields.<namespace>.<key>)`, `NAME; (product.metafields.custom.KEY)`, `product.metafields.<namespace>.<key>` | Supported product metafield header forms shown in the current guide | Recognize and preserve; do not guess the field type or validate its values without the store definition |
 | `variant.metafields.*` or `<name> (variant.metafields.*)` | Variant metafields are not supported in product CSV | Preserve and show a sourced warning; Shopify directs merchants to the variant bulk editor |
 | `Handle` | Legacy product template header, also used by inventory CSV; current product header is `URL handle` | Recognize as an exact legacy alias for product identity; preserve spelling and values, and show an informational current-template recommendation |

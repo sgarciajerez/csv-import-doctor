@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.49';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.50';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -150,11 +150,38 @@ const ADDITIONAL_SHOPIFY_TEMPLATE_HEADERS = new Set([
   'Unit price total measure', 'Unit price total measure unit', 'Unit price base measure', 'Unit price base measure unit',
 ]);
 
+const GOOGLE_SHOPPING_HEADERS = new Set([
+  'Google Shopping / Google Product Category',
+  'Google Shopping / Gender',
+  'Google Shopping / Age Group',
+  'Google Shopping / MPN',
+  'Google Shopping / Condition',
+  'Google Shopping / Custom Product',
+  'Google Shopping / Custom Label 0',
+  'Google Shopping / Custom Label 1',
+  'Google Shopping / Custom Label 2',
+  'Google Shopping / Custom Label 3',
+  'Google Shopping / Custom Label 4',
+  // These additional spellings are present in Shopify's downloadable product template.
+  'Google Shopping / Manufacturer part number (MPN)',
+  'Google Shopping / Ad group name',
+  'Google Shopping / Google product category',
+  'Google Shopping / Age group',
+  'Google Shopping / Ads labels',
+  'Google Shopping / Custom product',
+  'Google Shopping / Custom label 0',
+  'Google Shopping / Custom label 1',
+  'Google Shopping / Custom label 2',
+  'Google Shopping / Custom label 3',
+  'Google Shopping / Custom label 4',
+]);
+
 const STATIC_PRODUCT_HEADERS = new Set([
   'Title', 'URL handle', 'Collection', 'Description', 'Body (HTML)', 'Vendor', 'Product category', 'Type', 'Tags',
   'Published on online store', 'Published', 'Status', 'Product image URL', 'Image Src', 'Image position',
   'Image alt text', 'Image Alt Text', 'Gift card', 'SEO title', 'SEO description', ...VARIANT_COLUMNS,
   ...ADDITIONAL_SHOPIFY_TEMPLATE_HEADERS,
+  ...GOOGLE_SHOPPING_HEADERS,
   ...Object.keys(LEGACY_HEADER_ALIASES), ...Object.values(LEGACY_HEADER_ALIASES).flat(),
 ]);
 const NORMALIZED_STATIC_PRODUCT_HEADERS = new Set([...STATIC_PRODUCT_HEADERS].map((header) => header.toLowerCase()));
@@ -197,7 +224,6 @@ function isVariantMetafieldHeader(header: string): boolean {
 
 function hasExactDynamicProductHeader(header: string): boolean {
   return /^(Included|Price|Compare At Price|Compare-at price) \/ .+$/.test(header)
-    || header.startsWith('Google Shopping /')
     || header.startsWith('product.metafields.')
     || header.includes('(product.metafields.');
 }
@@ -205,7 +231,6 @@ function hasExactDynamicProductHeader(header: string): boolean {
 function hasKnownDynamicProductHeaderCaseInsensitively(header: string): boolean {
   const normalized = header.trim().toLowerCase();
   return /^(included|price|compare at price|compare-at price) \/ .+$/.test(normalized)
-    || normalized.startsWith('google shopping /')
     || normalized.startsWith('product.metafields.')
     || normalized.includes('(product.metafields.')
     || NORMALIZED_UNSUPPORTED_PRODUCT_MEDIA_HEADERS.has(normalized);

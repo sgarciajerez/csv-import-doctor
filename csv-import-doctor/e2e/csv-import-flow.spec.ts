@@ -135,6 +135,15 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   expect(narrowLayout.previewHeaderCount).toBe(20);
   expect(narrowLayout.tableWrapperFitsViewport).toBe(true);
 
+  const googleShoppingHeaders = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-google-shopping-headers.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-google-shopping-headers.csv',
+    mimeType: 'text/csv',
+    buffer: googleShoppingHeaders,
+  });
+  await expect(app.locator('body')).toContainText('This header may be a typo for "Google Shopping / Age Group".');
+  await expect(app.locator('body')).toContainText('Google Shopping / Merchant note');
+
   const barcodeHeaderOverlap = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-barcode-header-overlap.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-barcode-header-overlap.csv',
