@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.56';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.57';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -11,6 +11,12 @@ const MAX_SHOPIFY_PRODUCT_TAGS = 250;
 const MAX_SHOPIFY_BARCODES_PER_VARIANT = 20;
 const MAX_SHOPIFY_COLLECTION_LENGTH = 255;
 const MAX_PRODUCT_IMAGES = 250;
+const UNIT_PRICE_HEADERS = [
+  'Unit price total measure',
+  'Unit price total measure unit',
+  'Unit price base measure',
+  'Unit price base measure unit',
+];
 const RECOMMENDATION_RULES = new Set([
   'inventory-csv-format-detected',
   'inventory-csv-format-possible',
@@ -33,6 +39,7 @@ const RECOMMENDATION_RULES = new Set([
   'blank-price-may-fail-import',
   'invalid-product-money-format',
   'compare-at-price-not-higher-than-price',
+  'incomplete-unit-price-measurement',
   'custom-fulfillment-service-handle-format',
   'unlisted-inventory-tracker',
   'invalid-product-boolean-value',
@@ -813,9 +820,29 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       return columnIndex === undefined ? '' : (row[columnIndex] ?? '').trim();
     });
     const populatedPackedDimensionCount = packedDimensionValues.filter(Boolean).length;
+    const unitPriceHeaderCounts = UNIT_PRICE_HEADERS.map((header) => csv.headers.filter((candidate) => candidate === header).length);
+    const unitPriceHeadersUnambiguous = unitPriceHeaderCounts.every((count) => count <= 1);
+    const unitPriceValues = UNIT_PRICE_HEADERS.map((header) => {
+      const columnIndex = csv.headers.indexOf(header);
+      return columnIndex < 0 ? '' : (row[columnIndex] ?? '').trim();
+    });
+    const populatedUnitPriceCount = unitPriceValues.filter(Boolean).length;
+    const incompleteUnitPriceColumns = UNIT_PRICE_HEADERS.filter((_, fieldIndex) =>
+      unitPriceHeaderCounts[fieldIndex] === 0 || !unitPriceValues[fieldIndex]);
     const startsProduct = Boolean(title)
       || Boolean(handle && !firstProductRowByHandle.has(handle))
       || (!handle && index === 0);
+    if (unitPriceHeadersUnambiguous && populatedUnitPriceCount > 0 && populatedUnitPriceCount < UNIT_PRICE_HEADERS.length) {
+      issues.push(makeIssue(
+        'incomplete-unit-price-measurement',
+        'warning',
+        'Unit price measurement fields are incomplete; review all four values together.',
+        visibleRow,
+        incompleteUnitPriceColumns.join(' / '),
+        'Shopify documents that the product price and total/base measurement values determine the unit price, and instructs merchants to include all four measurement columns when updating unit pricing by CSV. This is a review recommendation, not an import error; confirm the intended values. The analyzer preserves every cell and does not infer missing measurements or units.',
+        'https://help.shopify.com/en/manual/products/details/product-pricing/unit-pricing',
+      ));
+    }
     if (startsProduct) {
       currentProductImageGroup = handle
         ? `handle:${handle}`

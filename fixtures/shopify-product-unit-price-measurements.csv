@@ -1,0 +1,4 @@
+Title,URL handle,Unit price total measure,Unit price total measure unit,Unit price base measure,Unit price base measure unit
+Complete,complete,600,g,1,kg
+Missing unit,missing-unit,600,g,1,
+No unit price,no-unit-price,,,,

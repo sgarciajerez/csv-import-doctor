@@ -552,6 +552,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(appBody).toContainText('Compare At Price / South America should contain a numeric monetary value without a currency symbol.');
   await expect(appBody).toContainText('Compare-at price / France should contain a numeric monetary value without a currency symbol.');
 
+  const unitPriceMeasurements = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-unit-price-measurements.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-unit-price-measurements.csv',
+    mimeType: 'text/csv',
+    buffer: unitPriceMeasurements,
+  });
+  await expect(appBody).toContainText('Unit price measurement fields are incomplete; review all four values together.');
+
   const excessiveTags = Array.from({ length: 251 }, (_, index) => `tag-${index}`).join(',');
   await app.locator('input[type="file"]').setInputFiles({
     name: 'tags-over-limit.csv',
