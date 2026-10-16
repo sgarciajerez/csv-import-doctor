@@ -167,8 +167,16 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     'https://help.shopify.com/en/manual/products/import-export/using-csv',
   );
 
-  await app.locator('input[type="checkbox"]').first().check();
-  await app.getByRole('button', { name: /Aplicar 1 seleccionada/ }).click();
+  await app.getByLabel('Buscar propuesta de reparación').focus();
+  await page.keyboard.press('Tab');
+  const firstRepairCheckbox = app.locator('input[type="checkbox"]').first();
+  await expect(firstRepairCheckbox).toBeFocused();
+  await page.keyboard.press('Space');
+  const applyRepairButton = app.getByRole('button', { name: /Aplicar 1 seleccionada/ });
+  await expect(applyRepairButton).toBeEnabled();
+  await page.keyboard.press('Tab');
+  await expect(applyRepairButton).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(app.getByRole('status').filter({ hasText: 'Cambios aplicados: 1' })).toBeVisible();
 
   await app.getByRole('button', { name: 'Deshacer última aplicación' }).click();
