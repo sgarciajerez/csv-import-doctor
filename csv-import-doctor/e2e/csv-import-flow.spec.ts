@@ -1,0 +1,342 @@
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { expect, test } from '@playwright/test';
+import { parseCsv } from '../../packages/csv-doctor-core/src/index.js';
+
+test('analyzes, filters, repairs, and downloads locally without sending CSV data', async ({ page }) => {
+  test.skip(!process.env.PLAYWRIGHT_APP_URL || !process.env.PLAYWRIGHT_STORAGE_STATE,
+    'Set PLAYWRIGHT_APP_URL and PLAYWRIGHT_STORAGE_STATE from the authenticated Shopify dev preview.');
+
+  const requestBodies: string[] = [];
+  const requestUrls: string[] = [];
+  page.on('request', (request) => {
+    requestUrls.push(request.url());
+    const body = request.postDataBuffer();
+    if (body) requestBodies.push(body.toString('utf8'));
+  });
+
+  await page.goto(process.env.PLAYWRIGHT_APP_URL!);
+  const loginHeading = page.getByRole('heading', { name: 'Log in', exact: true });
+  if (await loginHeading.isVisible().catch(() => false)) {
+    throw new Error('Shopify redirected to its sign-in page. Finish Shopify login in the Playwright browser, close it to save storage state, then rerun this test.');
+  }
+  const app = page.frameLocator('iframe').first();
+  await expect(app.locator('s-section').first()).toBeVisible();
+
+  const appFrame = page.frames().find((frame) => frame.url().includes('embedded=1'));
+  if (!appFrame) throw new Error('Shopify did not load the embedded app frame.');
+  await appFrame.waitForLoadState('networkidle');
+
+  const fixture = await readFile(resolve(process.cwd(), '..', 'fixtures', 'e2e-review.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'e2e-review.csv',
+    mimeType: 'text/csv',
+    buffer: fixture,
+  });
+
+  await expect(app.getByText('2 filas', { exact: true })).toBeVisible();
+  await expect(app.getByRole('status').filter({ hasText: 'Análisis completado: 2 filas' })).toBeVisible();
+  await expect(app.getByRole('table').getByRole('caption')).toHaveText('Vista previa de las primeras 2 filas del CSV');
+  await expect(app.getByRole('columnheader', { name: 'Title' })).toHaveAttribute('scope', 'col');
+  await app.getByLabel('Filtrar por tipo').selectOption('error');
+  await app.getByLabel('Buscar incidencia').fill('missing');
+  await expect(app.getByText(/missing its Title value/i)).toBeVisible();
+  await expect(app.getByText('Formato Shopify', { exact: true })).toBeVisible();
+  await expect(app.getByRole('link', { name: /Fuente de Shopify/ })).toHaveAttribute(
+    'href',
+    'https://help.shopify.com/en/manual/products/import-export/using-csv',
+  );
+
+  await app.locator('input[type="checkbox"]').first().check();
+  await app.getByRole('button', { name: /Aplicar 1 seleccionada/ }).click();
+  await expect(app.getByRole('status').filter({ hasText: 'Cambios aplicados: 1' })).toBeVisible();
+
+  await app.getByRole('button', { name: 'Deshacer última aplicación' }).click();
+  await expect(app.getByText(/Cambios aplicados:/)).not.toBeVisible();
+  await app.locator('input[type="checkbox"]').first().check();
+  await app.getByRole('button', { name: /Aplicar 1 seleccionada/ }).click();
+  await expect(app.getByRole('status').filter({ hasText: 'Cambios aplicados: 1' })).toBeVisible();
+
+  const csvDownloadPromise = page.waitForEvent('download');
+  await app.getByRole('button', { name: 'Descargar CSV revisado' }).click();
+  const csvDownload = await csvDownloadPromise;
+  expect(csvDownload.suggestedFilename()).toBe('e2e-review-reviewed.csv');
+  const csvContent = await readFile((await csvDownload.path()), 'utf8');
+  const exportedCsv = parseCsv(csvContent);
+  expect(csvContent).not.toContain('\r');
+  expect(exportedCsv.issues).toEqual([]);
+  expect(exportedCsv.headers).toEqual(['Title', 'URL handle', 'Vendor', 'Status']);
+  expect(exportedCsv.rows).toEqual([
+    ['CSV-DOCTOR-PRIVATE-MARKER-7Q4', 'sample-product', 'Example Supply', 'active'],
+    ['', 'untitled-product', 'Example Supply', 'draft'],
+  ]);
+
+  const reportDownloadPromise = page.waitForEvent('download');
+  await app.getByRole('button', { name: 'Descargar informe JSON' }).click();
+  const reportDownload = await reportDownloadPromise;
+  expect(reportDownload.suggestedFilename()).toBe('e2e-review-report.json');
+  const reportContent = await readFile((await reportDownload.path()), 'utf8');
+  const report = JSON.parse(reportContent) as { summary: { dataRows: number; appliedRepairCount: number }; unresolvedIssues: Array<{ ruleId: string }> };
+  expect(report.summary).toMatchObject({ dataRows: 2, appliedRepairCount: 1 });
+  expect(report.unresolvedIssues.map((issue) => issue.ruleId)).toContain('required-title-value');
+  expect(reportContent).not.toContain('Example Supply');
+
+  await app.getByLabel('Filtrar por tipo').selectOption('all');
+  await app.getByLabel('Buscar incidencia').fill('');
+  const ambiguousDelimiterFixture = await readFile(resolve(process.cwd(), '..', 'fixtures', 'e2e-ambiguous-delimiter.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'e2e-ambiguous-delimiter.csv',
+    mimeType: 'text/csv',
+    buffer: ambiguousDelimiterFixture,
+  });
+  const ambiguityWarning = app.getByText(/More than one delimiter fits this file\. Confirm the delimiter before relying on the results\./);
+  await expect(ambiguityWarning).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Descargar CSV revisado' })).toBeDisabled();
+  await expect(app.getByRole('button', { name: 'Descargar informe JSON' })).toBeDisabled();
+  await expect(app.getByRole('alert')).toContainText('Descarga bloqueada: confirma el separador');
+  const delimiterSelect = app.getByLabel('Confirmar separador del CSV');
+  await delimiterSelect.selectOption(';');
+  await expect(app.getByRole('status').first()).toContainText('Análisis completado: 1 filas');
+  await expect(ambiguityWarning).not.toBeVisible();
+  await expect(delimiterSelect).toHaveValue(';');
+  await expect(app.getByRole('button', { name: 'Descargar CSV revisado' })).toBeEnabled();
+  await expect(app.getByRole('button', { name: 'Descargar informe JSON' })).toBeEnabled();
+  await expect(app.getByRole('table').getByRole('cell', { name: 'CSV-DOCTOR-AMBIGUOUS-MARKER-3M8' })).toBeVisible();
+  await expect(app.getByRole('table').getByRole('cell', { name: 'Acme,active' })).toBeVisible();
+  const normalizedDownloadPromise = page.waitForEvent('download');
+  await app.getByRole('button', { name: 'Descargar CSV revisado' }).click();
+  const normalizedDownload = await normalizedDownloadPromise;
+  const normalizedCsv = parseCsv(await readFile((await normalizedDownload.path()), 'utf8'));
+  expect(normalizedCsv.headers).toEqual(['Title', 'Vendor,Status']);
+  expect(normalizedCsv.rows).toEqual([['CSV-DOCTOR-AMBIGUOUS-MARKER-3M8', 'Acme,active']]);
+
+  await app.getByLabel('Filtrar por tipo').selectOption('all');
+  await app.getByLabel('Buscar incidencia').fill('');
+  await app.getByLabel('Tipo de importación').selectOption('update');
+  await expect(app.getByText(/If you enable Shopify overwrite/)).toBeVisible();
+
+  const duplicateOptions = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-duplicate-variant-options.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-duplicate-variant-options.csv',
+    mimeType: 'text/csv',
+    buffer: duplicateOptions,
+  });
+  await expect(app.locator('body')).toContainText('This product repeats an option value combination from row 2.');
+
+  const inventoryDependencies = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-inventory-dependencies.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-inventory-dependencies.csv',
+    mimeType: 'text/csv',
+    buffer: inventoryDependencies,
+  });
+  const appBody = app.locator('body');
+  await expect(appBody).toContainText('Inventory quantity must be a number.');
+  await expect(appBody).toContainText('Continue selling when out of stock must be deny or continue.');
+  await expect(appBody).toContainText('Inventory is tracked but Inventory quantity is blank.');
+  await expect(appBody).toContainText('SKU is required when using a custom fulfillment service.');
+  await expect(appBody).toContainText('This custom fulfillment service name may not match Shopify’s handle format guidance.');
+  await expect(appBody).toContainText('This Inventory tracker value is not listed in Shopify’s current product CSV guide.');
+
+  const booleanValues = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-boolean-values.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-boolean-values.csv',
+    mimeType: 'text/csv',
+    buffer: booleanValues,
+  });
+  await expect(appBody).toContainText('Published on online store should use the documented value true or false.');
+  await expect(appBody).toContainText('Gift card should use the documented value true or false.');
+
+  const weightValues = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-weight-values.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-weight-values.csv',
+    mimeType: 'text/csv',
+    buffer: weightValues,
+  });
+  await expect(appBody).toContainText('Weight value (grams) should be a whole number in grams, without a unit.');
+  await expect(appBody).toContainText('Weight unit for display should be g, kg, lb, or oz.');
+
+  const imageMetadata = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-image-metadata.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-image-metadata.csv',
+    mimeType: 'text/csv',
+    buffer: imageMetadata,
+  });
+  await expect(appBody).toContainText('Image position must be a number greater than or equal to 1.');
+  await expect(appBody).toContainText('Image alt text exceeds Shopify’s 512-character maximum.');
+
+  const seoLimits = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-seo-limits.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-seo-limits.csv',
+    mimeType: 'text/csv',
+    buffer: seoLimits,
+  });
+  await expect(appBody).toContainText('SEO title exceeds Shopify’s 70-character limit.');
+  await expect(appBody).toContainText('SEO description exceeds Shopify’s 320-character limit.');
+
+  const blankPrice = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-blank-price.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-blank-price.csv',
+    mimeType: 'text/csv',
+    buffer: blankPrice,
+  });
+  await expect(appBody).toContainText('This product or variant row has a blank Price; Shopify documentation gives conflicting guidance.');
+
+  const moneyFormat = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-money-format.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-money-format.csv',
+    mimeType: 'text/csv',
+    buffer: moneyFormat,
+  });
+  await expect(appBody).toContainText('Price should contain a numeric monetary value without a currency symbol.');
+  await expect(appBody).toContainText('Compare-at price should contain a numeric monetary value without a currency symbol.');
+  await expect(appBody).toContainText('Cost per item should contain a numeric monetary value without a currency symbol.');
+
+  const excessiveTags = Array.from({ length: 251 }, (_, index) => `tag-${index}`).join(',');
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'tags-over-limit.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`Title,URL handle,Tags\nTag test,tag-test,"${excessiveTags}"`, 'utf8'),
+  });
+  await expect(appBody).toContainText('This product has 251 tags; Shopify allows a maximum of 250.');
+
+  const excessiveBarcodes = Array.from({ length: 21 }, (_, index) => `code-${index}`).join(';');
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'barcodes-over-limit.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`Title,URL handle,Option1 name,Option1 value,Barcodes\nBarcode test,barcode-test,Size,Small,"${excessiveBarcodes}"`, 'utf8'),
+  });
+  await expect(appBody).toContainText('This product or variant has 21 barcodes; Shopify allows a maximum of 20.');
+
+  const longCollection = 'c'.repeat(256);
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'collection-over-limit.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`Title,URL handle,Collection\nCollection test,collection-test,"${longCollection}"`, 'utf8'),
+  });
+  await expect(appBody).toContainText('This collection name has 256 characters; Shopify allows a maximum of 255.');
+
+  const productImageRows = Array.from({ length: 251 }, (_, index) => `${index === 0 ? 'Image limit' : ''},image-limit,https://cdn.example.test/image-${index}.jpg`);
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'product-images-over-limit.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`Title,URL handle,Product image URL\n${productImageRows.join('\n')}`, 'utf8'),
+  });
+  await expect(appBody).toContainText('This product lists 251 product image URL entries; Shopify allows a maximum of 250 images per product.');
+
+  const privateImageUrlMarker = 'CSV-DOCTOR-IMAGE-PRIVATE-9K2';
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'image-url-not-https.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`Title,URL handle,Product image URL\nImage URL test,image-url-test,http://cdn.example.test/${privateImageUrlMarker}`, 'utf8'),
+  });
+  await expect(appBody).toContainText('Shopify expects a publicly accessible HTTPS image URL without password protection.');
+  expect(requestUrls.join('\n')).not.toContain(privateImageUrlMarker);
+  expect(requestBodies.join('\n')).not.toContain(privateImageUrlMarker);
+
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'thumbnail-suffix.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Title,URL handle,Product image URL\nThumbnail test,thumbnail-test,https://cdn.example.test/product_thumb.jpg?size=large', 'utf8'),
+  });
+  await expect(appBody).toContainText('This product image URL uses a _thumb, _small, or _medium filename suffix.');
+
+  await app.locator('body').evaluate((body) => {
+    const windowObject = body.ownerDocument.defaultView!;
+    const windowWithTestHooks = windowObject as typeof windowObject & {
+      __realWorker?: typeof Worker;
+      __terminatedWorkers?: number;
+    };
+    windowWithTestHooks.__realWorker = windowObject.Worker;
+    windowWithTestHooks.__terminatedWorkers = 0;
+    windowObject.Worker = class {
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror: ((event: ErrorEvent) => void) | null = null;
+      postMessage() {}
+      terminate() {
+        windowWithTestHooks.__terminatedWorkers! += 1;
+      }
+    } as unknown as typeof Worker;
+  });
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'cancel-analysis.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Title,Vendor\nMug,Example', 'utf8'),
+  });
+  const analysisStatus = app.getByRole('status').first();
+  await expect(analysisStatus).toHaveText('Analizando el archivo localmente.');
+  await app.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(analysisStatus).toHaveText('Análisis cancelado.');
+  expect(await app.locator('body').evaluate((body) => {
+    const windowWithTestHooks = body.ownerDocument.defaultView as (Window & { __terminatedWorkers?: number });
+    return windowWithTestHooks.__terminatedWorkers;
+  })).toBe(1);
+  await app.locator('body').evaluate((body) => {
+    const windowWithTestHooks = body.ownerDocument.defaultView as (Window & { __realWorker?: typeof Worker });
+    if (windowWithTestHooks.__realWorker) body.ownerDocument.defaultView!.Worker = windowWithTestHooks.__realWorker;
+  });
+
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'malformed.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Title,Description\nMug,"unfinished description', 'utf8'),
+  });
+  await expect(app.getByRole('heading', { name: 'Resultado del análisis' })).toBeVisible();
+  await expect(app.getByRole('alert').filter({ hasText: 'Descarga bloqueada' })).toBeVisible();
+  await expect(app.getByRole('button', { name: 'Descargar CSV revisado' })).toBeDisabled();
+  await expect(app.getByRole('button', { name: 'Descargar informe JSON' })).toBeDisabled();
+
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'invalid-utf8.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from([0x54, 0x69, 0x74, 0x6c, 0x65, 0x0a, 0xc3, 0x28]),
+  });
+  await expect(app.getByRole('alert')).toContainText('No se pudo leer como UTF-8.');
+  await expect(app.getByRole('heading', { name: 'Resultado del análisis' })).not.toBeVisible();
+
+  const longDescription = 'x'.repeat(19_999_950);
+  const nearLimitCsv = Buffer.from(`Title,Description\nMug,"${longDescription}"\n`, 'utf8');
+  expect(nearLimitCsv.byteLength).toBeLessThanOrEqual(20_000_000);
+  const nearLimitStartedAt = performance.now();
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'near-local-limit.csv',
+    mimeType: 'text/csv',
+    buffer: nearLimitCsv,
+  });
+  await expect(app.getByRole('status').first()).toContainText('Análisis completado: 1 filas');
+  await expect(app.getByText('Shopify product CSV files cannot exceed 15 MB; split this file before importing.')).toBeVisible();
+  await expect(app.locator('a[href="https://help.shopify.com/en/manual/products/import-export/import-products"]')).toBeVisible();
+  const renderedDescription = app.getByRole('table').locator('tbody td').nth(1);
+  await expect(renderedDescription).toContainText('…');
+  expect(await renderedDescription.evaluate((cell) => cell.textContent?.length)).toBe(501);
+  console.log(`[perf] ${nearLimitCsv.byteLength}-byte local analysis, Shopify size diagnostic, and preview: ${Math.round(performance.now() - nearLimitStartedAt)} ms`);
+  const largeCsvDownloadPromise = page.waitForEvent('download');
+  await app.getByRole('button', { name: 'Descargar CSV revisado' }).click();
+  const largeCsvDownload = await largeCsvDownloadPromise;
+  const largeCsvExport = parseCsv(await readFile((await largeCsvDownload.path()), 'utf8'));
+  expect(largeCsvExport.rows[0]?.[1]?.length).toBe(longDescription.length);
+
+  const overLocalLimitCsv = Buffer.concat([nearLimitCsv, Buffer.alloc(26, 0x20)]);
+  expect(overLocalLimitCsv.byteLength).toBe(20_000_001);
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'over-local-limit.csv',
+    mimeType: 'text/csv',
+    buffer: overLocalLimitCsv,
+  });
+  await expect(app.getByRole('alert')).toContainText('El archivo supera el límite local de análisis de 20 MB.');
+  await expect(app.getByRole('heading', { name: 'Resultado del análisis' })).not.toBeVisible();
+
+  const rowLimitCsv = Buffer.from(`Title\n${'Mug\n'.repeat(100_001)}`, 'utf8');
+  const rowLimitStartedAt = performance.now();
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'row-limit.csv',
+    mimeType: 'text/csv',
+    buffer: rowLimitCsv,
+  });
+  await expect(app.getByRole('alert')).toContainText('Descarga bloqueada: el análisis detectó');
+  await expect(app.getByRole('button', { name: 'Descargar CSV revisado' })).toBeDisabled();
+  await expect(app.getByRole('button', { name: 'Descargar informe JSON' })).toBeDisabled();
+  console.log(`[perf] 100,001-row limit diagnosis: ${Math.round(performance.now() - rowLimitStartedAt)} ms`);
+
+  expect(requestBodies.join('\n')).not.toContain('CSV-DOCTOR-PRIVATE-MARKER-7Q4');
+  expect(requestBodies.join('\n')).not.toContain('CSV-DOCTOR-AMBIGUOUS-MARKER-3M8');
+});

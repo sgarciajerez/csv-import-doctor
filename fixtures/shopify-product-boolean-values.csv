@@ -1,0 +1,5 @@
+Title,URL handle,Published on online store,Gift card,Requires shipping,Charge tax
+Mug,mug,true,false,true,true
+Cup,cup,yes,maybe,sometimes,TRUE
+Shirt,shirt,,,,
+,shirt,,,false,no

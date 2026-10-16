@@ -20,6 +20,12 @@ Eres el arquitecto y desarrollador principal de **CSV Import Doctor**. Construye
 9. Cuando falte una decisión no bloqueante, toma la alternativa más simple, documenta el supuesto y continúa. Pregunta únicamente ante bloqueos reales o acciones con consecuencias externas.
 10. Mantén un `docs/PROGRESS.md` con decisiones, hitos, pendientes y pruebas realizadas.
 
+### Requisitos para la calidad objetivo
+
+Antes de planificar o implementar cambios de producto, leer `docs/REQUIREMENTS_10.md`. Trátalo como referencia normativa de calidad y criterios de aceptación para Codex y cualquier agente posterior. Prioriza los requisitos P0, evidencia su cumplimiento con código o pruebas, y actualiza `docs/PROGRESS.md`; no marques un requisito completo sin evidencia. Si una decisión posterior contradice ese documento, actualiza y justifica primero el requisito afectado.
+
+Al cambiar diagnósticos, consulta y actualiza también `docs/DIAGNOSTIC_RULES.md`. Cada regla nueva debe tener una prueba de contrato y una entrada en ese catálogo antes de considerarse terminada.
+
 ## 1. Producto y alcance
 
 **Nombre provisional:** CSV Import Doctor.  

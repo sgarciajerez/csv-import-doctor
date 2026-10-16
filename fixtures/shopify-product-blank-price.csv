@@ -1,0 +1,4 @@
+Title,URL handle,Option1 name,Option1 value,Price,Product image URL
+Shirt,shirt,Size,Small,,
+,shirt,Size,Large,,
+,,,,,https://cdn.example.test/shirt-back.jpg

@@ -1,0 +1,5 @@
+Title,URL handle,Option1 name,Option1 value,Weight value (grams),Weight unit for display
+Mug,mug,,,,
+Shirt,shirt,Size,Small,5.25,pound
+,shirt,Size,Large,1800,lb
+Cup,cup,,,1.2 kg,KG

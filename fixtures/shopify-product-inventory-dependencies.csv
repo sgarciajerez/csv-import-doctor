@@ -1,0 +1,7 @@
+Title,URL handle,SKU,Inventory tracker,Inventory quantity,Continue selling when out of stock,Fulfillment service
+Tracked,tracked,,shopify,,sometimes,custom-3pl
+Valid,valid,SKU-1,shopify,0,deny,manual
+Untracked,untracked,,,,,manual
+Bad quantity,bad-quantity,SKU-2,shopify,one,continue,manual
+Custom service format,custom-service,SKU-3,shopify,5,deny,Joan's Fulfillment
+Unlisted tracker,unlisted-tracker,SKU-4,legacy-warehouse,8,deny,manual

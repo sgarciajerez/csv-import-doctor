@@ -26,6 +26,17 @@ function inspectDelimiter(source: string, delimiter: string): DelimiterCandidate
   return { delimiter, width: modalWidth, consistency };
 }
 
+function parserExplanation(ruleId: string): string {
+  if (ruleId === 'file-too-large') return 'The local character limit bounds browser memory use. Split the source file into smaller files while keeping the original header row.';
+  if (ruleId === 'row-limit-exceeded') return 'The local row limit bounds browser work. Split the source file into smaller files, each with its own header row.';
+  if (ruleId === 'file-empty') return 'A CSV needs a header row before any product records can be analyzed.';
+  if (ruleId === 'delimiter-ambiguous') return 'More than one separator produces a plausible table shape. Choose the separator used between the actual columns before trusting row and column diagnostics.';
+  if (ruleId === 'duplicate-header') return 'Each column needs a distinct header so values can be tied to the correct field. Rename or remove the duplicate column in the source file.';
+  if (ruleId === 'column-count-mismatch') return 'This logical CSV record has a different number of fields than the header. Check its quoting and separators; a quoted cell may contain line breaks without starting a new record.';
+  if (ruleId.startsWith('parser-')) return 'The CSV parser could not reliably read this record. Review quotes and escaped quotes around the reported logical record before exporting.';
+  return 'This is a CSV structure check. Review the indicated record or file setting, correct the source CSV, and analyze it again.';
+}
+
 function chooseDelimiter(source: string): { delimiter: string; ambiguous: boolean } {
   const candidates = DELIMITERS
     .map((delimiter) => inspectDelimiter(source, delimiter))
@@ -46,9 +57,19 @@ function issue(
   ruleId: string,
   severity: CsvIssue['severity'],
   message: string,
-  details: Partial<Omit<CsvIssue, 'id' | 'ruleId' | 'severity' | 'message'>> = {},
+  details: Partial<Omit<CsvIssue, 'id' | 'ruleId' | 'severity' | 'message' | 'category'>> & { idSuffix?: string } = {},
 ): CsvIssue {
-  return { id: `${ruleId}-${details.row ?? 'file'}-${details.column ?? ''}`, ruleId, severity, message, ...details };
+  const { idSuffix, ...fields } = details;
+  return {
+    id: `${ruleId}-${details.row ?? 'file'}-${details.column ?? ''}${idSuffix ? `-${idSuffix}` : ''}`,
+    ruleId,
+    severity,
+    category: 'parser',
+    message,
+    explanation: details.explanation ?? parserExplanation(ruleId),
+    fixSafety: details.fixSafety ?? 'manual',
+    ...fields,
+  };
 }
 
 export function parseCsv(input: string, options: CsvParseOptions = {}): ParsedCsv {
@@ -121,7 +142,7 @@ export function parseCsv(input: string, options: CsvParseOptions = {}): ParsedCs
         'duplicate-header',
         'error',
         `Header duplicates column ${firstIndex + 1}.`,
-        { row: 1, column: header || `Column ${index + 1}`, originalValue: header, fixSafety: 'manual' },
+        { row: 1, column: header || `Column ${index + 1}`, originalValue: header, fixSafety: 'manual', idSuffix: `c${index + 1}` },
       ));
     } else {
       seen.set(key, index);
