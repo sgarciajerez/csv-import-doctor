@@ -1,4 +1,4 @@
-# Progress
+﻿# Progress
 
 ## Phase 0 - Bootstrap
 
@@ -101,6 +101,10 @@
 - [x] R10-06 (parcial): registrado un baseline reproducible en `docs/PERFORMANCE_BASELINE.md`: 19.999.975 bytes (sobre el límite Shopify de 15 MB, bajo el límite local de 20 MB) se analizan y previsualizan en 2.156 ms; 100.001 filas alcanzan y bloquean el límite en 489 ms. La vista previa limita celdas extensas a 500 unidades de texto más elipsis; la exportación conserva el contenido completo.
 - [ ] R10-06 pendiente: repetir en el navegador/dispositivo menos potente que se vaya a soportar y medir memoria máxima para un CSV representativo con muchas filas; el baseline actual es una estación de desarrollo de 32 GiB y no mide memoria.
 
+
+- [x] Perfil `.35`: valida el formato documentado de `Option1/2/3 LinkedTo` (`product.metafields.shopify.{taxonomy_attribute}`), avisando solo si falta el prefijo o la clave; preserva los valores y no intenta validar atributos/metafields específicos de la tienda. Core: 67 pruebas pasan; lint, typecheck y build pasan.
+- E2E autenticado tras `.35` - pass (1 flujo, 35.2 s), con aviso visible para `Option1 LinkedTo` mal formado.
+
 ## Decisions and constraints
 
 - CSV parsing, validation, repair, and export run in the browser core. Do not upload, persist, or log CSV contents.
@@ -115,7 +119,7 @@
 
 - `npm run lint` - pass.
 - `npm run typecheck` - pass.
-- `npm test` - pass (66 tests, including create/update required-value cases and diagnostic-contract coverage across all CSV fixtures).
+- `npm test` - pass (67 tests, including create/update required-value cases and diagnostic-contract coverage across all CSV fixtures).
 - `npm run build` - pass.
 - App `npm run typecheck` - pass.
 - App `npm run build` - pass.
@@ -149,7 +153,7 @@
 - [ ] R10-05 (parcial): la interfaz enlaza una política de privacidad que describe el tratamiento real del CSV y los campos de sesión Prisma; el TOML configura los tres webhooks de cumplimiento y `shop/redact` elimina sesiones de forma idempotente. 5 pruebas de unidad cubren firma HMAC válida con secreto sintético y el handler compartido por la ruta HTTP, rechazo si cambia el cuerpo firmado, borrado repetido por tienda, solicitudes de clientes sin acceso a sesiones y topics inesperados; E2E autenticado confirma la divulgación, la página pública y el rechazo HTTP 401 de HMAC inválido. También verifica reset del input, terminación del Worker al cancelar y reanálisis con delimitador confirmado. El código libera la referencia `File` tras análisis normal, cancelación y errores; solo la retiene mientras puede volver a analizar un delimitador ambiguo. Pendiente validar una entrega firmada contra el entorno local integrado y completar responsable/contacto, hosting, regiones y retención antes de distribuir.
 - [x] R10-09: alineada la versión de la Admin API de Shopify en el servidor y en los webhooks a `2026-10`, la versión estable más reciente a 2026-10-16; se eliminó el TOML `2027-01` (release candidate) y la discrepancia con el servidor `2026-07`.
 - [x] R10-02: prueba de contrato recorre cada fixture CSV en modos crear y actualizar; comprueba IDs estables, metadatos requeridos, referencias de fila/columna, trazabilidad de diagnósticos Shopify y presencia de cada regla emitida en el catálogo. Core: 54 pruebas pasan.
-- [ ] R10-08 (parcial): workflow de GitHub Actions configurado para ejecutar en push y pull request a `develop`/`master` lint, typecheck, unit tests y build del core y la app Shopify en Node 22.12. El conjunto de comandos pasa localmente (66 pruebas del core y 5 de webhooks); falta observar una ejecución real en GitHub. E2E autenticadas siguen siendo locales porque requieren sesión de una tienda de desarrollo; deben añadirse al CI si se configura un entorno seguro de autenticación.
+- [ ] R10-08 (parcial): workflow de GitHub Actions configurado para ejecutar en push y pull request a `develop`/`master` lint, typecheck, unit tests y build del core y la app Shopify en Node 22.12. El conjunto de comandos pasa localmente (67 pruebas del core y 5 de webhooks); falta observar una ejecución real en GitHub. E2E autenticadas siguen siendo locales porque requieren sesión de una tienda de desarrollo; deben añadirse al CI si se configura un entorno seguro de autenticación.
 
 - [x] Perfil `.30`: avisa cuando `Inventory quantity` tiene valor y la columna presente `Inventory tracker` esta vacia, segun la guia Shopify que define el tracker vacio como inventario no rastreado. Pide confirmar la intencion, preserva los datos y no se activa si la columna se omite o si aparecen alias en conflicto; los tests cubren cabeceras actuales y antiguas, create/update y casos sin aviso.
 - [x] Perfil `.31`: muestra una nota informativa unica cuando el CSV de productos contiene una cantidad de inventario no vacia, ya que Shopify limita este campo a tiendas con una ubicacion; enlaza el formato separado para inventario multiubicacion sin inferir la configuracion de la tienda.

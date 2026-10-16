@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.34';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.35';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -46,6 +46,7 @@ const RECOMMENDATION_RULES = new Set([
   'product-image-count-exceeds-limit',
   'image-url-not-public-https',
   'image-filename-uses-thumbnail-suffix',
+  'invalid-option-linkedto-format',
 ]);
 const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'URL handle': ['Handle'],
@@ -356,6 +357,9 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const optionValueIndices = ['Option1 value', 'Option2 value', 'Option3 value']
     .map((header) => headerIndex(csv.headers, header))
     .filter((index): index is number => index !== undefined);
+  const optionLinkedToIndices = csv.headers
+    .map((header, index) => /^Option[123] LinkedTo$/.test(header) ? index : -1)
+    .filter((index) => index >= 0);
   const variantDataIndices = VARIANT_COLUMNS
     .map((header) => headerIndex(csv.headers, header))
     .filter((index): index is number => index !== undefined);
@@ -719,6 +723,21 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
           visibleRow,
           csv.headers[columnIndex],
           'Shopify documents a maximum of 512 characters for image alt text. This check counts Unicode code points; shorten the text manually and review the resulting description before changing it.',
+          PRODUCT_CSV_SOURCE,
+        ));
+      }
+    }
+    for (const columnIndex of optionLinkedToIndices) {
+      const linkedTo = (row[columnIndex] ?? '').trim();
+      if (linkedTo && (!linkedTo.startsWith('product.metafields.shopify.')
+        || linkedTo.length === 'product.metafields.shopify.'.length)) {
+        issues.push(makeIssue(
+          'invalid-option-linkedto-format',
+          'warning',
+          `${csv.headers[columnIndex]} should use Shopify's documented product.metafields.shopify taxonomy-attribute format.`,
+          visibleRow,
+          csv.headers[columnIndex],
+          'Shopify documents Option LinkedTo values as product.metafields.shopify.{taxonomy_attribute}. Confirm the category metafield key for this product; this local check verifies only the documented namespace prefix and a non-empty attribute name, and preserves the supplied value.',
           PRODUCT_CSV_SOURCE,
         ));
       }

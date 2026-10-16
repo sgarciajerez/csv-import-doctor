@@ -186,6 +186,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(appBody).toContainText("This Product category ID is not in Shopify's 2026-08 taxonomy release.");
 
+  const optionLinkedTo = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-option-linkedto.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-option-linkedto.csv',
+    mimeType: 'text/csv',
+    buffer: optionLinkedTo,
+  });
+  await expect(appBody).toContainText("Option1 LinkedTo should use Shopify's documented product.metafields.shopify taxonomy-attribute format.");
+
   const inventoryWithoutTracker = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-inventory-without-tracker.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-inventory-without-tracker.csv',

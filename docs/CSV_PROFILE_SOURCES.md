@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.34`
+Profile version: `shopify-product-csv-2026-10-16.35`
+
+Changes in `.35`: for nonblank `Option1/2/3 LinkedTo` values, warn if the value does not use the documented `product.metafields.shopify.{taxonomy_attribute}` form or has an empty attribute key. This does not validate that the attribute exists or is valid for the product category; the value remains unchanged. Shopify also documents that linked `OptionN value` entries use metaobject handles or GIDs rather than display names, but the analyzer does not attempt to distinguish those formats because a valid handle is store-specific.
 
 Changes in `.34`: require a nonblank product `Title` on product-start rows in both create and update mode, and require a nonblank existing `URL handle` on product and continuation rows containing data in update mode. Blank titles remain valid on continuation rows that repeat the handle. Missing handles are not generated. This follows Shopify's documented required columns for create/update and its row instructions for variants and images; all supplied cells remain unchanged.
 
@@ -88,6 +90,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 | `Collection` | One collection per product; maximum value length 255 characters | Warn when a product-start row exceeds 255 Unicode code points; preserve the value |
 | `URL handle` | Current product header; required for updates and variant/image continuation rows | Validate according to mode and row content |
 | Variant data headers documented by Shopify (options, SKU, barcodes, pricing, inventory, weight, packed dimensions, fulfillment and variant image) | Current product headers for variant attributes | Warn when update data contains one of these columns without both `Option1 name` and `Option1 value` |
+| `Option1/2/3 LinkedTo` and corresponding `OptionN value` | A linked option uses a category metafield with a `product.metafields.shopify.{taxonomy_attribute}` identifier; values are metaobject handles or GIDs, not display names | Warn only when a nonblank LinkedTo value lacks the documented namespace prefix or attribute suffix. Preserve it; do not check store-specific attribute existence or infer whether an option value is a handle versus a display name. |
 | `Inventory quantity`, `Inventory tracker`, `Continue selling when out of stock`, `Fulfillment service`, `SKU` | Product CSV quantities apply only to single-location stores; blank tracker means not tracked; quantity must be numeric; policy is `deny`/`continue`; custom fulfillment needs SKU; blank tracked quantity has conflicting guidance | Show a file-level info note when quantities are supplied, warn for an explicitly blank tracker paired with a quantity, validate numeric quantity/policy, require SKU for custom fulfillment, and warn rather than block on blank tracked quantity |
 | `Fulfillment service` (custom values) | Shopify recommends lowercase custom service handles, spaces replaced with hyphens, and other punctuation removed; the configured service is store-specific | Warn if a value contains uppercase letters, whitespace, or punctuation; preserve it and ask the merchant to verify the configured service |
 | `Inventory tracker` | Current guide lists `shopify`, `shipwire`, and `amazon_marketplace_web`, but uses non-exhaustive "include" wording | Inform when a value is outside this list; preserve it and ask the merchant to confirm with the integration, without classifying it as invalid |
