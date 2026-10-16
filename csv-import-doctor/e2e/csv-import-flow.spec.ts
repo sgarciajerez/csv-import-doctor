@@ -167,6 +167,15 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(appBody).toContainText('Published on online store should use the documented value true or false.');
   await expect(appBody).toContainText('Gift card should use the documented value true or false.');
 
+  await app.getByLabel('Tipo de importación').selectOption('create');
+  const giftCardCreate = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-gift-card-create.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-gift-card-create.csv',
+    mimeType: 'text/csv',
+    buffer: giftCardCreate,
+  });
+  await expect(appBody).toContainText('Shopify does not allow creating gift cards through a product CSV import.');
+
   const weightValues = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-weight-values.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-weight-values.csv',

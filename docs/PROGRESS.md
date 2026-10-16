@@ -143,6 +143,8 @@
 - E2E autenticado tras .27 - pass (1 flujo), con mensaje de sufijo visible en la app.
 - [x] Perfil .28: advierte cuando Price, Compare-at price o Cost per item no contiene un importe numérico sin símbolo de moneda; incluye alias antiguos verificados para los encabezados de precio, conserva el valor y no impone precisión ni rangos no documentados. Unit test cubre números válidos, símbolos, códigos monetarios, texto y preservación.
 - E2E autenticado tras .28 - pass (1 flujo), con los tres avisos de formato monetario visibles en la app.
+- [x] Perfil .29: bloquea con error trazable `Gift card=true` en modo crear porque Shopify no permite crear gift cards por CSV; no lo emite al actualizar y conserva el valor. Unit tests cubren ambos modos.
+- E2E autenticado tras .29 - pass (1 flujo), con el error visible en modo crear.
 
 - [ ] R10-05 (parcial): la interfaz enlaza una política de privacidad que describe el tratamiento real del CSV y los campos de sesión Prisma; el TOML configura los tres webhooks de cumplimiento y `shop/redact` elimina sesiones de forma idempotente. 4 pruebas de unidad cubren borrado repetido por tienda, solicitudes de clientes sin acceso a sesiones y topics inesperados; E2E autenticado confirma la divulgación, la página pública y el rechazo HTTP 401 de un HMAC inválido. Pendiente ejecutar entregas válidas firmadas y completar responsable/contacto, hosting, regiones y retención antes de distribuir.
 - [x] R10-09: alineada la versión de la Admin API de Shopify en el servidor y en los webhooks a `2026-10`, la versión estable más reciente a 2026-10-16; se eliminó el TOML `2027-01` (release candidate) y la discrepancia con el servidor `2026-07`.

@@ -1,6 +1,6 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.28';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.29';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -325,6 +325,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const collectionIndex = csv.headers.indexOf('Collection');
   const tagsIndex = csv.headers.indexOf('Tags');
   const barcodesIndex = csv.headers.indexOf('Barcodes');
+  const giftCardIndex = csv.headers.indexOf('Gift card');
   const imageIndices = ['Product image URL', 'Image Src']
     .map((header) => headerIndex(csv.headers, header))
     .filter((index): index is number => index !== undefined);
@@ -546,6 +547,21 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
         : `unkeyed-product:${++anonymousProductCounter}`;
     } else if (handle) {
       currentProductImageGroup = `handle:${handle}`;
+    }
+
+    if (options.mode === 'create'
+      && startsProduct
+      && giftCardIndex !== -1
+      && (row[giftCardIndex] ?? '').trim() === 'true') {
+      issues.push(makeIssue(
+        'gift-card-create-not-supported',
+        'error',
+        'Shopify does not allow creating gift cards through a product CSV import.',
+        visibleRow,
+        'Gift card',
+        'Shopify documents that a gift card cannot be created by importing a product CSV. Create and activate the gift card in Shopify admin; this diagnostic applies to create mode only and does not change the value.',
+        PRODUCT_CSV_SOURCE,
+      ));
     }
 
     for (const columnIndex of monetaryColumnIndices) {

@@ -13,6 +13,7 @@ Initial core coverage:
 - Image URLs: test absolute HTTPS, HTTP, relative/malformed, and embedded credentials for product and variant image columns; verify the app never requests the supplied image URL and never claims public reachability is verified.
 - Product image filename suffixes: test `_thumb`, `_small`, `_medium` with and without extensions, ignore query-string matches, preserve URLs, and keep variant image references outside this product-field-specific check.
 - Product money formatting: test `Price`, `Compare-at price`, `Cost per item`, and verified legacy price aliases; accept integer, zero, signed, and dot-decimal numeric examples, warn on currency symbols/codes and nonnumeric text, preserve all values, and verify the advisory is visible in E2E. Authenticated E2E passed for all three current headers.
+- Gift cards: verify `Gift card=true` produces a sourced blocking diagnostic in create mode, does not produce that diagnostic in update mode, and preserves the cell; confirm the restriction remains distinct from boolean spelling checks.
 - Verify unknown columns and repeated SKUs are preserved and are not fatal errors.
 - CSV parse/serialize round-trip and formula-like values remain unmodified absent an explicit export policy.
 - Browser bundle has no Node-only imports; analysis makes no network requests.

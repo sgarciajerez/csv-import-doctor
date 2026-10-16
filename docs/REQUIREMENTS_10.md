@@ -32,6 +32,7 @@ Antes de cerrar cualquier requisito, registrar evidencia verificable en `docs/PR
 - Contar filas de imagen por producto según el esquema de continuación de Shopify y advertir al superar 250; distinguir las URL de imagen de producto de las URL que solo asignan una imagen a una variante.
 - Comprobar localmente que las URL de imagen sean absolutas HTTPS sin credenciales embebidas; no solicitar esas URL ni afirmar que se comprobó su disponibilidad pública.
 - Advertir si `Price`, `Compare-at price` o `Cost per item` contiene texto o símbolos de moneda en vez de un importe numérico sin símbolo. Cubrir los alias antiguos verificados para los campos de precio, preservar los valores y no inferir precisión decimal, positividad ni límites que la documentación no especifica.
+- Bloquear con un error trazable la creación de gift cards (`Gift card=true`) mediante CSV en modo crear; Shopify no permite crearlas por esta vía. No emitir esta regla en modo actualizar, donde los datos de gift card existentes sí pueden editarse.
 - Advertir si el nombre de archivo en `Product image URL` o `Image Src` termina en los sufijos que Shopify documenta como no válidos (`_thumb`, `_small`, `_medium`), ignorando query strings y sin modificar la URL.
 - Preservar columnas desconocidas y valores. Distinguir entre columna desconocida, columna con grafía incorrecta y formato no soportado.
 - Detectar CSV de inventario u otros tipos y explicar que usan un esquema distinto; no aplicarles silenciosamente el perfil de productos.
