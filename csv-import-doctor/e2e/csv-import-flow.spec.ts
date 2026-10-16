@@ -136,6 +136,15 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await app.getByLabel('Tipo de importación').selectOption('update');
   await expect(app.getByText(/If you enable Shopify overwrite/)).toBeVisible();
 
+  const requiredValues = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-required-values.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-required-values.csv',
+    mimeType: 'text/csv',
+    buffer: requiredValues,
+  });
+  await expect(app.locator('body')).toContainText('An update row with product data is missing its URL handle value.');
+  await expect(app.locator('body')).not.toContainText('A product row is missing its Title value.');
+
   const duplicateOptions = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-duplicate-variant-options.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-duplicate-variant-options.csv',

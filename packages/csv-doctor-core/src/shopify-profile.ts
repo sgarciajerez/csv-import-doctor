@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.33';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.34';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -545,6 +545,8 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     const handle = rawHandle.trim();
     const title = titleIndex === undefined ? '' : (row[titleIndex] ?? '').trim();
     const hasImageUrl = imageIndices.some((imageIndex) => Boolean((row[imageIndex] ?? '').trim()));
+    const hasDataOtherThanTitle = row.some((value, columnIndex) =>
+      columnIndex !== titleIndex && Boolean((value ?? '').trim()));
     const hasOptionValue = optionValueIndices.some((index) => Boolean((row[index] ?? '').trim()));
     const hasVariantData = variantDataIndices.some((index) => Boolean((row[index] ?? '').trim()));
     const requiresShipping = requiresShippingIndex === undefined
@@ -899,10 +901,16 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       }
     }
 
-    if (options.mode === 'create' && startsProduct && !title) {
+    if (titleIndex !== undefined && startsProduct && !title) {
       issues.push(makeIssue(
         'required-title-value', 'error', 'A product row is missing its Title value.', visibleRow, 'Title',
-        'Enter the product name on the first row for this product. Continuation rows can leave Title blank when they belong to an existing handle.',
+        'Shopify requires a Title value for each product record in both create and update files. Enter the title on the product row; variant and image continuation rows can leave it blank when they repeat the product handle.',
+      ));
+    }
+    if (options.mode === 'update' && handleIndex !== undefined && !handle && (startsProduct || hasDataOtherThanTitle)) {
+      issues.push(makeIssue(
+        'required-handle-value', 'error', 'An update row with product data is missing its URL handle value.', visibleRow, 'URL handle',
+        'Shopify uses the URL handle to match products during updates and to associate continuation-row data, including variants and images, with its product. Add the existing product handle; this check does not infer or generate one.',
       ));
     }
     if (options.mode === 'create' && hasOptionValue && !handle) {

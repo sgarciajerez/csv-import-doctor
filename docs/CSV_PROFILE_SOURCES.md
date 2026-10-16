@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.33`
+Profile version: `shopify-product-csv-2026-10-16.34`
+
+Changes in `.34`: require a nonblank product `Title` on product-start rows in both create and update mode, and require a nonblank existing `URL handle` on product and continuation rows containing data in update mode. Blank titles remain valid on continuation rows that repeat the handle. Missing handles are not generated. This follows Shopify's documented required columns for create/update and its row instructions for variants and images; all supplied cells remain unchanged.
 
 Changes in `.33`: check category-ID-shaped `Product category` values against Shopify Standard Product Taxonomy release `2026-08`, the latest stable release reviewed on 2026-10-16. The 14,606 English taxonomy IDs are generated from Shopify's pinned `categories.en.json.gz` release asset by `scripts/update-shopify-taxonomy.mjs`; the required MIT notice is in `licenses/SHOPIFY_PRODUCT_TAXONOMY_MIT.txt`. An unrecognized ID receives an informational recommendation with the pinned taxonomy release link; it is not called an import error because a newer taxonomy may exist in a shop. Full breadcrumbs are not compared because they may be localized. The app preserves the supplied value.
 

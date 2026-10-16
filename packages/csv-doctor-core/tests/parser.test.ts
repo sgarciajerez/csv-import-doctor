@@ -21,6 +21,7 @@ const imageMetadataFixture = readFileSync(new URL('../../../fixtures/shopify-pro
 const seoLimitsFixture = readFileSync(new URL('../../../fixtures/shopify-product-seo-limits.csv', import.meta.url), 'utf8');
 const accentedTagsFixture = readFileSync(new URL('../../../fixtures/shopify-product-accented-tags.csv', import.meta.url), 'utf8');
 const productCategoryIdsFixture = readFileSync(new URL('../../../fixtures/shopify-product-category-ids.csv', import.meta.url), 'utf8');
+const requiredValuesFixture = readFileSync(new URL('../../../fixtures/shopify-product-required-values.csv', import.meta.url), 'utf8');
 const diagnosticCatalog = readFileSync(new URL('../../../docs/DIAGNOSTIC_RULES.md', import.meta.url), 'utf8');
 const shopifyProfileSource = readFileSync(new URL('../src/shopify-profile.ts', import.meta.url), 'utf8');
 
@@ -178,6 +179,46 @@ describe('validateShopifyProductCsv', () => {
     expect(issues.map((item) => item.ruleId)).toEqual(['required-title-value', 'variant-handle-required']);
   });
 
+  it('requires nonblank product identity values in create and update modes while allowing valid continuations', () => {
+    const csv = parseCsv(requiredValuesFixture);
+    const createIssues = validateShopifyProductCsv(csv, { mode: 'create' });
+    expect(createIssues.filter((issue) => ['required-title-value', 'required-handle-value', 'variant-handle-required'].includes(issue.ruleId)))
+      .toMatchObject([
+        { ruleId: 'variant-handle-required', row: 5, column: 'URL handle' },
+      ]);
+    expect(createIssues.map((issue) => issue.ruleId)).not.toContain('required-title-value');
+
+    const updateIssues = validateShopifyProductCsv(csv, { mode: 'update' });
+    expect(updateIssues.filter((issue) => ['required-title-value', 'required-handle-value'].includes(issue.ruleId)))
+      .toMatchObject([
+        { ruleId: 'required-handle-value', row: 4, column: 'URL handle' },
+        { ruleId: 'required-handle-value', row: 5, column: 'URL handle' },
+      ]);
+    expect(updateIssues.map((issue) => issue.ruleId)).not.toContain('required-title-value');
+
+    const blankTitleProduct = validateShopifyProductCsv(parseCsv('Title,URL handle\n,mug'), { mode: 'update' });
+    expect(blankTitleProduct).toContainEqual(expect.objectContaining({
+      ruleId: 'required-title-value', row: 2, column: 'Title', severity: 'error',
+    }));
+    const blankUpdateHandle = validateShopifyProductCsv(parseCsv('Title,URL handle\nMug,'), { mode: 'update' });
+    expect(blankUpdateHandle).toContainEqual(expect.objectContaining({
+      ruleId: 'required-handle-value', row: 2, column: 'URL handle', severity: 'error',
+    }));
+    const handlelessContinuation = validateShopifyProductCsv(
+      parseCsv('Title,URL handle,Vendor\nShirt,shirt,\n,,Acme'),
+      { mode: 'update' },
+    );
+    expect(handlelessContinuation).toContainEqual(expect.objectContaining({
+      ruleId: 'required-handle-value', row: 3, column: 'URL handle', severity: 'error',
+    }));
+    const continuation = validateShopifyProductCsv(
+      parseCsv('Title,URL handle,Option1 name,Option1 value\nShirt,shirt,Size,Small\n,shirt,Size,Large'),
+      { mode: 'update' },
+    );
+    expect(continuation.map((issue) => issue.ruleId)).not.toContain('required-title-value');
+    expect(continuation.map((issue) => issue.ruleId)).not.toContain('required-handle-value');
+  });
+
   it('recognizes headers from the documented older Shopify product CSV template', () => {
     const legacyCsv = parseCsv(
       'Handle,Title,Option1 Name,Option1 Value,Variant SKU,Variant Price\nshirt,Shirt,Size,Small,SHIRT-S,19.99\nshirt,,Size,Large,SHIRT-L,19.99',
@@ -215,7 +256,7 @@ describe('validateShopifyProductCsv', () => {
         category: 'recommendation',
         row: 1,
         sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/common-import-issues',
-        profileVersion: 'shopify-product-csv-2026-10-16.33',
+        profileVersion: 'shopify-product-csv-2026-10-16.34',
       });
       expect(issue.explanation).toContain('does not specify how both columns are handled together');
     }
@@ -262,7 +303,7 @@ describe('validateShopifyProductCsv', () => {
       category: 'shopify-profile',
       message: 'Shopify product CSV files cannot exceed 15 MB; split this file before importing.',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/import-products',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     });
     expect(oversizedIssue?.row).toBeUndefined();
     expect(oversizedIssue?.column).toBeUndefined();
@@ -279,7 +320,7 @@ describe('validateShopifyProductCsv', () => {
       severity: 'warning',
       column: 'Location',
       sourceUrl: 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     })]);
   });
 
@@ -297,7 +338,7 @@ describe('validateShopifyProductCsv', () => {
       ruleId: 'inventory-csv-format-detected',
       severity: 'warning',
       sourceUrl: 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     })]);
   });
 
@@ -354,7 +395,7 @@ describe('validateShopifyProductCsv', () => {
         category: 'shopify-profile',
         row: 1,
         sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-        profileVersion: 'shopify-product-csv-2026-10-16.33',
+        profileVersion: 'shopify-product-csv-2026-10-16.34',
       });
     }
     expect(parsed.headers.slice(-2)).toEqual([
@@ -466,7 +507,7 @@ describe('validateShopifyProductCsv', () => {
       severity: 'warning',
       category: 'recommendation',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     });
     expect(parsed.rows[1]).toEqual(['Cup', 'cup', 'yes', 'maybe', 'sometimes', 'TRUE']);
 
@@ -487,7 +528,7 @@ describe('validateShopifyProductCsv', () => {
       row: 2,
       column: 'Gift card',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     }));
     expect(parsed.rows[0]?.[2]).toBe('true');
 
@@ -508,7 +549,7 @@ describe('validateShopifyProductCsv', () => {
       severity: 'warning',
       category: 'recommendation',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     });
     expect(parsed.rows[1]).toEqual(['Shirt', 'shirt', 'Size', 'Small', '5.25', 'pound']);
 
@@ -562,7 +603,7 @@ describe('validateShopifyProductCsv', () => {
       ruleId: 'barcode-columns-conflict',
       severity: 'error',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     }));
   });
 
@@ -588,7 +629,7 @@ describe('validateShopifyProductCsv', () => {
       row: 2,
       column: 'URL handle',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     }));
     expect(parsed.rows[0]?.[1]).toBe('summer mug');
     expect(validateShopifyProductCsv(parseCsv('Title,URL handle\nMug,summer-mug'), { mode: 'create' })
@@ -613,7 +654,7 @@ describe('validateShopifyProductCsv', () => {
       row: 2,
       column: 'Collection',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     }));
     expect(invalid.rows[0]?.[2]).toBe(collectionOverLimit);
   });
@@ -648,7 +689,7 @@ describe('validateShopifyProductCsv', () => {
       row: 252,
       column: 'Product image URL',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     });
     expect(invalidCsv.rows[250]?.[2]).toBe('https://cdn.example.test/image-250.jpg');
   });
@@ -674,7 +715,7 @@ describe('validateShopifyProductCsv', () => {
         severity: 'warning',
         category: 'recommendation',
         sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-        profileVersion: 'shopify-product-csv-2026-10-16.33',
+        profileVersion: 'shopify-product-csv-2026-10-16.34',
       });
       expect(issue.explanation).toContain('does not request the URL');
     }
@@ -702,7 +743,7 @@ describe('validateShopifyProductCsv', () => {
       severity: 'warning',
       category: 'recommendation',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     });
     expect(csv.rows[0]?.[2]).toBe('https://cdn.example.test/cup_thumb.jpg?width=400');
   });
@@ -723,7 +764,7 @@ describe('validateShopifyProductCsv', () => {
       row: 2,
       column: 'Tags',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     }));
     expect(invalid.rows[0]?.[2]).toBe(tagsOverLimit);
   });
@@ -740,7 +781,7 @@ describe('validateShopifyProductCsv', () => {
         row: 2,
         column: 'Tags',
         sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-        profileVersion: 'shopify-product-csv-2026-10-16.33',
+        profileVersion: 'shopify-product-csv-2026-10-16.34',
       })]);
       expect(accentedTagIssues[0]?.explanation).toContain('does not document an import failure');
     }
@@ -769,7 +810,7 @@ describe('validateShopifyProductCsv', () => {
         row: 3,
         column: 'Product category',
         sourceUrl: 'https://github.com/Shopify/product-taxonomy/releases/tag/v2026-08',
-        profileVersion: 'shopify-product-csv-2026-10-16.33',
+        profileVersion: 'shopify-product-csv-2026-10-16.34',
       })]);
     }
     expect(parsed.rows.map((row) => row[2])).toEqual([
@@ -805,7 +846,7 @@ describe('validateShopifyProductCsv', () => {
       row: 2,
       column: 'Barcodes',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     }));
     expect(overLimitCsv.rows[0]?.[4]).toBe(overLimit);
   });
@@ -874,7 +915,7 @@ describe('validateShopifyProductCsv', () => {
       row: 6,
       column: 'Fulfillment service',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     });
     expect(issues.find((issue) => issue.ruleId === 'custom-fulfillment-service-handle-format')?.explanation)
       .toContain('replacing spaces with hyphens');
@@ -884,7 +925,7 @@ describe('validateShopifyProductCsv', () => {
       row: 7,
       column: 'Inventory tracker',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     });
     expect(issues.find((issue) => issue.ruleId === 'unlisted-inventory-tracker')?.explanation)
       .toContain('not treated as invalid');
@@ -901,7 +942,7 @@ describe('validateShopifyProductCsv', () => {
         category: 'recommendation',
         column: 'Inventory quantity',
         sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-        profileVersion: 'shopify-product-csv-2026-10-16.33',
+        profileVersion: 'shopify-product-csv-2026-10-16.34',
       });
       expect(singleLocationNotice?.row).toBeUndefined();
       expect(issues.filter((issue) => issue.ruleId === 'inventory-quantity-single-location-only')).toHaveLength(1);
@@ -912,7 +953,7 @@ describe('validateShopifyProductCsv', () => {
         row: 2,
         column: 'Inventory tracker',
         sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-        profileVersion: 'shopify-product-csv-2026-10-16.33',
+        profileVersion: 'shopify-product-csv-2026-10-16.34',
       }));
     }
     expect(parsed.rows).toEqual([['Untracked quantity', 'untracked-quantity', '', '12']]);
@@ -966,7 +1007,7 @@ describe('validateShopifyProductCsv', () => {
       column: 'Option1 value / Option2 value',
       message: 'This product repeats an option value combination from row 2.',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/common-import-issues',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     })]);
   });
 
@@ -983,7 +1024,7 @@ describe('validateShopifyProductCsv', () => {
       severity: 'warning',
       category: 'recommendation',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/common-import-issues',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     });
     expect(issues[0]?.explanation).toContain('default of 0.00');
   });
@@ -1008,7 +1049,7 @@ describe('validateShopifyProductCsv', () => {
       severity: 'warning',
       category: 'recommendation',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
-      profileVersion: 'shopify-product-csv-2026-10-16.33',
+      profileVersion: 'shopify-product-csv-2026-10-16.34',
     });
     expect(parsed.rows[1]).toEqual(['Invalid', 'invalid', '$9.99', 'EUR 12.50', 'unknown', '€7.25', '£6.00']);
     expect(validateShopifyProductCsv(parseCsv('Title,URL handle,Price\nZero,zero,0'), { mode: 'create' }))

@@ -115,7 +115,7 @@
 
 - `npm run lint` - pass.
 - `npm run typecheck` - pass.
-- `npm test` - pass (65 tests, including diagnostic-contract coverage across all CSV fixtures).
+- `npm test` - pass (66 tests, including create/update required-value cases and diagnostic-contract coverage across all CSV fixtures).
 - `npm run build` - pass.
 - App `npm run typecheck` - pass.
 - App `npm run build` - pass.
@@ -156,3 +156,5 @@
 
 - [x] Perfil `.32`: recomienda evitar caracteres acentuados latinos en Tags como informacion, ya que Shopify los desaconseja sin documentar que fallen en importacion; detecta Unicode compuesto y descompuesto, conserva el texto y no propone borrado ni traduccion.
 - [x] Perfil `.33`: contrasta IDs con forma de categoria `Product category` contra el release oficial Shopify Taxonomy `2026-08`; IDs no reconocidos generan solo informacion con enlace versionado. No valida breadcrumbs localizados ni cambia valores. Fixture cubre ID raiz, anidado, ID desconocido y breadcrumb.
+- [x] Perfil `.34`: crea y actualiza con `Title` no vacío en filas de producto; al actualizar, requiere `URL handle` no vacío en filas con datos de producto o de continuación. Las continuaciones con handle repetido pueden omitir `Title`; los handles no se inventan. Fixture cubre create/update, filas de continuación y valores vacíos. Core: 66 pruebas pasan; lint, typecheck y builds del core y la app pasan.
+- E2E del perfil `.34`: ejecutado con el estado autenticado guardado, pero Shopify no llegó a cargar la app: el proxy de la vista previa devolvió `ECONNREFUSED` y el `prisma generate` previo del CLI falló con `EPERM` al reemplazar su motor Windows. El E2E se detuvo antes de analizar el fixture; requiere recuperar la vista previa y repetir.
