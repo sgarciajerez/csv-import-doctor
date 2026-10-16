@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.50';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.51';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -79,6 +79,8 @@ const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'Requires shipping': ['Variant Requires Shipping'],
   'Charge tax': ['Variant Taxable'],
   'Barcode': ['Variant Barcode'],
+  'Product image URL': ['Image Src'],
+  'Image alt text': ['Image Alt Text'],
 };
 
 function headerIndex(headers: string[], canonical: string): number | undefined {
@@ -178,8 +180,8 @@ const GOOGLE_SHOPPING_HEADERS = new Set([
 
 const STATIC_PRODUCT_HEADERS = new Set([
   'Title', 'URL handle', 'Collection', 'Description', 'Body (HTML)', 'Vendor', 'Product category', 'Type', 'Tags',
-  'Published on online store', 'Published', 'Status', 'Product image URL', 'Image Src', 'Image position',
-  'Image alt text', 'Image Alt Text', 'Gift card', 'SEO title', 'SEO description', ...VARIANT_COLUMNS,
+  'Published on online store', 'Published', 'Status', 'Product image URL', 'Image position',
+  'Image alt text', 'Gift card', 'SEO title', 'SEO description', ...VARIANT_COLUMNS,
   ...ADDITIONAL_SHOPIFY_TEMPLATE_HEADERS,
   ...GOOGLE_SHOPPING_HEADERS,
   ...Object.keys(LEGACY_HEADER_ALIASES), ...Object.values(LEGACY_HEADER_ALIASES).flat(),
@@ -403,9 +405,9 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     .map((header, index) => ['Barcodes', 'Variant Barcodes'].includes(header) ? index : -1)
     .filter((index) => index >= 0);
   const giftCardIndex = csv.headers.indexOf('Gift card');
-  const imageIndices = ['Product image URL', 'Image Src']
+  const imageIndices = [...new Set(['Product image URL', 'Image Src']
     .map((header) => headerIndex(csv.headers, header))
-    .filter((index): index is number => index !== undefined);
+    .filter((index): index is number => index !== undefined))];
   const imageUrlIndices = [...new Set([
     ...imageIndices,
     headerIndex(csv.headers, 'Variant image URL'),

@@ -144,6 +144,16 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(app.locator('body')).toContainText('This header may be a typo for "Google Shopping / Age Group".');
   await expect(app.locator('body')).toContainText('Google Shopping / Merchant note');
 
+  const conflictingImageAliases = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-conflicting-image-aliases.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-conflicting-image-aliases.csv',
+    mimeType: 'text/csv',
+    buffer: conflictingImageAliases,
+  });
+  await expect(app.locator('body')).toContainText(
+    'This file contains multiple headers for the same Shopify field: Product image URL / Image Src.',
+  );
+
   const barcodeHeaderOverlap = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-barcode-header-overlap.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-barcode-header-overlap.csv',

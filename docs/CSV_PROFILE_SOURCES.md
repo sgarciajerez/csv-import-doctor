@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.50`
+Profile version: `shopify-product-csv-2026-10-16.51`
+
+Changes in `.51`: add the exact older-template image headers `Image Src` and `Image Alt Text` as aliases for the current `Product image URL` and `Image alt text` columns. When current and older spellings coexist, warn that Shopify does not document precedence and preserve both. Deduplicate the resolved image-column indices so a lone `Image Src` alias is counted once for the per-product image limit.
 
 Changes in `.50`: replace the open-ended `Google Shopping /` header prefix with an allowlist based on the current Shopify product CSV guide and exact downloadable template headers, including the template's capitalization variants. Documented names include Google Product Category, Gender, Age Group, MPN, Condition, Custom Product, and Custom Labels 0–4; exact template-only spellings such as `Manufacturer part number (MPN)` and `Ad group name` remain supported. A one-edit misspelling now receives the existing low-confidence typo advisory, and an unlisted custom header remains informational and unchanged.
 
@@ -100,6 +102,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - The parser can accept other delimiters for analysis, but Shopify product CSV output is normalized to commas and LF line endings; the source format receives a warning. When automatic detection is ambiguous, the app blocks repairs and downloads until an explicit delimiter choice and reparses the local file before the result can be trusted.
 - `fixtures/shopify-product-conflicting-aliases.csv` demonstrates mixed current and legacy spellings. The profile warns for those pairs while preserving the original header order and every value.
 - `fixtures/shopify-product-current-headers.csv` records the current downloadable template header row plus dynamic Markets and product-metafield examples; the contract test ensures these documented headers are not reported as unknown or misspelled. Template fields without a documented local validation rule remain pass-through data.
+- `fixtures/shopify-product-conflicting-image-aliases.csv` combines current and older image URL/alt-text headers from Shopify's current guide and older template example; tests require ambiguity warnings and exact round-trip preservation. Image count checks deduplicate aliases so one legacy column contributes once.
 - `fixtures/shopify-product-inventory-dependencies.csv` covers tracked and untracked rows, numeric and invalid quantities, policy values, custom versus built-in fulfillment services, a valid slug-style custom service, a service value with spaces and punctuation, and a tracker value outside Shopify's documented examples.
 - `fixtures/shopify-product-duplicate-variant-options.csv` includes one repeated option tuple under the same handle and the same tuple under another handle; only the same-product duplicate is diagnosed.
 - `fixtures/shopify-product-blank-price.csv` covers blank product and variant prices plus an image-only continuation row, which must not receive a price warning.
@@ -141,7 +144,8 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 | `Option1 value`, `Option2 value`, `Option3 value` | Changing these values creates new variant IDs | Warn on update rows containing an option value; explain that the risk depends on whether the value changes from the store |
 | `Packed product length`, `Packed product width`, `Packed product height`, `Packed product dimension unit` | Four related variant headers; all values together or blank; omitted columns leave the saved size unchanged | Error on partial values, validate positive dimensions and `cm`/`in`, warn about clears on update and `Requires shipping=false` behavior |
 | `Product image URL` | Product image header in the current column table | Require `URL handle` when a row adds an image without a product title |
-| `Image Src` | Name used in Shopify's image-row instructions and examples | Treat as a product image header too; preserve the supplied header |
+| `Image Src` | Exact image header in Shopify's older product template; current guide uses `Product image URL` | Recognize as a legacy alias; if both are present, advise that precedence is undocumented and preserve both columns |
+| `Image Alt Text` | Exact alt-text header in Shopify's older product template; current guide uses `Image alt text` | Recognize as a legacy alias; if both are present, advise that precedence is undocumented and preserve both columns |
 | `Product image URL`, `Image Src` | One CSV row per product image; maximum 250 images per product | Count nonblank cells by product handle across continuation rows; warn once above the limit. `Variant image URL` associations are excluded because they may refer to an already listed product image. |
 | `Product image URL`, `Image Src`, `Variant image URL` | Image URLs must be usable and publicly accessible over HTTPS without password protection | Warn locally for malformed, non-HTTPS, or credential-bearing URLs. Do not fetch URLs; public reachability remains unverified. |
 | `Product image URL`, `Image Src` | Image filenames should not use `_thumb`, `_small`, or `_medium` suffixes | Inspect the URL pathname before query parameters; warn on those suffixes without fetching or editing the URL. |
