@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.55`
+Profile version: `shopify-product-csv-2026-10-16.56`
+
+Changes in `.56`: extend the existing numeric-format recommendation to exact `Price / [Market]`, `Compare At Price / [Market]`, and `Compare-at price / [Market]` headers. Shopify defines them as fixed market-currency amounts and states that product CSV price values omit currency symbols; because it does not separately spell out the accepted numeric syntax for each dynamic header, the app reports a review recommendation rather than an import error. Blank values are skipped, values are preserved, and no currency or precision is inferred.
 
 Changes in `.55`: extend the sale-price comparison recommendation to unambiguous fixed-market pairs (`Price / [Market]` with either documented `Compare At Price / [Market]` or `Compare-at price / [Market]`). Shopify documents these fields in product CSVs and says fixed international sale prices are imported by CSV; the sale-pricing guide says compare-at must be higher than price to display a sale price. This stays advisory, compares decimal strings exactly, skips blank/nonnumeric/ambiguous pairs, and preserves both values.
 
@@ -84,7 +86,8 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - For creating products, `Title` is the only always-required column; adding variants also requires `URL handle`.
 - For updates, `URL handle` and `Title` are required. Variant data can depend on `Option1 name` and `Option1 value`.
 - Shopify says a fixed `Compare At Price / [Market]` requires a fixed `Price / [Market]`. The profile warns when the compare-at value is supplied while its corresponding market price is blank or absent, preserves both values, and links to the Markets catalog guidance. It does not infer currency values or convert prices.
-- Shopify says a compare-at price must be higher than `Price` to display a sale price. The profile compares valid numeric base price cells row by row, including verified legacy headers, and advises when the compare-at value is equal or lower. It skips blank or malformed values and ambiguous alias pairs, does not classify the CSV as unimportable, and preserves both amounts.
+- Shopify says a compare-at price must be higher than its corresponding price to display a sale price. The profile compares valid numeric base and fixed-market price pairs row by row, including verified legacy base headers; it advises when the compare-at value is equal or lower. It skips blank, malformed, or ambiguous pairs, does not classify the CSV as unimportable, and preserves both amounts.
+- For exact fixed-market `Price / [Market]` and compare-at headers, nonnumeric text or currency symbols receive the existing monetary-format recommendation. This applies Shopify's general product CSV instruction about price values to dynamic fixed-market money fields; the app describes this as a review recommendation because Shopify does not separately enumerate their accepted numeric syntax.
 - Shopify product CSV supports image URLs as media input; video and 3D model uploads use Shopify admin instead. For explicit video or 3D model URL headers, the profile issues a sourced warning and preserves every value. It does not flag custom metafield headers or claim a particular importer result.
 - Shopify says valid URL handles can contain letters, dashes, and numbers, and cannot contain spaces. The app warns on whitespace and, separately, on punctuation or symbols outside Unicode letters, numbers, and hyphens. Both are advisories only; all values remain unchanged.
 - Shopify limits each product to 250 tags, represented as comma-separated values in the `Tags` cell. The app warns above 250 non-empty entries on product-start rows and preserves the original cell.

@@ -542,6 +542,16 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(appBody).toContainText('Compare At Price / South America is not higher than Price / South America; Shopify displays a sale price only when the compare-at price is higher.');
   await expect(appBody).toContainText('Compare-at price / France is not higher than Price / France; Shopify displays a sale price only when the compare-at price is higher.');
 
+  const marketMoneyFormat = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-market-money-format.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-market-money-format.csv',
+    mimeType: 'text/csv',
+    buffer: marketMoneyFormat,
+  });
+  await expect(appBody).toContainText('Price / South America should contain a numeric monetary value without a currency symbol.');
+  await expect(appBody).toContainText('Compare At Price / South America should contain a numeric monetary value without a currency symbol.');
+  await expect(appBody).toContainText('Compare-at price / France should contain a numeric monetary value without a currency symbol.');
+
   const excessiveTags = Array.from({ length: 251 }, (_, index) => `tag-${index}`).join(',');
   await app.locator('input[type="file"]').setInputFiles({
     name: 'tags-over-limit.csv',

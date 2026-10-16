@@ -1,0 +1,7 @@
+Title,URL handle,Price / South America,Compare At Price / South America,Price / France,Compare-at price / France
+Valid,valid,19.99,29.99,10,12
+Price symbol,price-symbol,$19.99,29.99,10,12
+Compare symbol,compare-symbol,19.99,USD 29.99,10,12
+Text price,text-price,"19,99",29.99,10,12
+Text compare,text-compare,19.99,not-a-price,10,12 EUR
+Blank,blank,,,10,

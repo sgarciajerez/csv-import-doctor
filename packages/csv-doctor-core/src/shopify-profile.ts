@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.55';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.56';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -488,7 +488,8 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     : undefined;
   const monetaryHeaders = new Set(['Price', 'Compare-at price', 'Cost per item', 'Variant Price', 'Variant Compare-at Price']);
   const monetaryColumnIndices = csv.headers
-    .map((header, index) => monetaryHeaders.has(header) ? index : -1)
+    .map((header, index) => monetaryHeaders.has(header)
+      || /^(?:Price|Compare At Price|Compare-at price) \/ .+$/.test(header) ? index : -1)
     .filter((index) => index >= 0);
   const marketCompareAtColumns = csv.headers
     .map((header, columnIndex) => {
@@ -897,7 +898,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
           `${csv.headers[columnIndex]} should contain a numeric monetary value without a currency symbol.`,
           visibleRow,
           csv.headers[columnIndex],
-          'Shopify says Price, Compare-at price, and Cost per item must contain the monetary value without a currency symbol (for example, 9.99). Confirm this value and edit it manually; the analyzer preserves it and does not infer currency, precision, or an intended replacement.',
+          'Shopify documents product CSV Price and Compare-at price values without currency symbols, and describes market price columns as fixed monetary values in the named market currency. Confirm that this fixed amount uses the expected number format; the analyzer preserves it and does not infer currency, precision, or an intended replacement.',
           PRODUCT_CSV_SOURCE,
         ));
       }
