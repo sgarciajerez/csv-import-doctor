@@ -54,6 +54,7 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     mimeType: 'text/csv',
     buffer: fixture,
   });
+  await expect(app.locator('input[type="file"]')).toHaveValue('');
 
   await expect(app.getByText('2 filas', { exact: true })).toBeVisible();
   await expect(app.getByRole('status').filter({ hasText: 'Análisis completado: 2 filas' })).toBeVisible();

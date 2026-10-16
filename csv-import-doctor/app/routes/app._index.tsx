@@ -139,6 +139,7 @@ export default function Index() {
         workerRef.current = null;
         setIsAnalyzing(false);
         if (event.data.ok === false) {
+          fileRef.current = null;
           setError(event.data.message);
           setAnalysisAnnouncement('');
           return;
@@ -149,19 +150,25 @@ export default function Index() {
         setParseIssues(parsed.issues);
         setIssues(event.data.issues);
         setProposals(nextProposals);
-        setNeedsDelimiterConfirmation((current) => current || parsed.issues.some((issue) => issue.ruleId === 'delimiter-ambiguous'));
+        const hasAmbiguousDelimiter = parsed.issues.some((issue) => issue.ruleId === 'delimiter-ambiguous');
+        setNeedsDelimiterConfirmation((current) => current || hasAmbiguousDelimiter);
+        if (!delimiter && !hasAmbiguousDelimiter) fileRef.current = null;
         setAnalysisAnnouncement(`Análisis completado: ${parsed.rows.length} filas y ${event.data.issues.length} incidencias.`);
       };
       worker.onerror = () => {
         if (workerRef.current !== worker) return;
         worker.terminate();
         workerRef.current = null;
+        fileRef.current = null;
         setIsAnalyzing(false);
         setError('No se pudo analizar el archivo en este navegador. Prueba con un CSV más pequeño o revisa su codificación.');
         setAnalysisAnnouncement('');
       };
       worker.postMessage({ file, mode, delimiter });
     } catch {
+      workerRef.current?.terminate();
+      workerRef.current = null;
+      fileRef.current = null;
       setIsAnalyzing(false);
       setError('No se pudo iniciar el análisis local.');
       setAnalysisAnnouncement('');
@@ -171,6 +178,7 @@ export default function Index() {
   function selectFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
+    event.currentTarget.value = '';
     fileRef.current = null;
     setFileSizeBytes(file.size);
     setNeedsDelimiterConfirmation(false);
@@ -279,7 +287,7 @@ export default function Index() {
               <option value="|">Barra vertical (|)</option>
             </select>
           </label>}
-          {isAnalyzing && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><s-spinner size="base" accessibilityLabel="Analizando" />Analizando localmente… <button type="button" style={buttonStyle} onClick={() => { workerRef.current?.terminate(); workerRef.current = null; setIsAnalyzing(false); setAnalysisAnnouncement('Análisis cancelado.'); }}>Cancelar</button></div>}
+          {isAnalyzing && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><s-spinner size="base" accessibilityLabel="Analizando" />Analizando localmente… <button type="button" style={buttonStyle} onClick={() => { workerRef.current?.terminate(); workerRef.current = null; fileRef.current = null; setIsAnalyzing(false); setAnalysisAnnouncement('Análisis cancelado.'); }}>Cancelar</button></div>}
           {error && <p role="alert" style={{ color: '#b42318', margin: 0 }}>{error}</p>}
           {filename && <p style={{ margin: 0 }}>Archivo: <strong>{filename}</strong></p>}
         </div>
