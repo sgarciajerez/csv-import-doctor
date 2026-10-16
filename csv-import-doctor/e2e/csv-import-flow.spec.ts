@@ -235,6 +235,8 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(app.getByRole('button', { name: 'Descargar informe JSON' })).toBeEnabled();
   await expect(app.getByRole('table').getByRole('cell', { name: 'CSV-DOCTOR-AMBIGUOUS-MARKER-3M8' })).toBeVisible();
   await expect(app.getByRole('table').getByRole('cell', { name: 'Acme,active' })).toBeVisible();
+  const confirmedDelimiterAccessibilityViolations = await auditEmbeddedAppAccessibility(appFrame);
+  expect(confirmedDelimiterAccessibilityViolations, JSON.stringify(confirmedDelimiterAccessibilityViolations, null, 2)).toEqual([]);
   const normalizedDownloadPromise = page.waitForEvent('download');
   await app.getByRole('button', { name: 'Descargar CSV revisado' }).click();
   const normalizedDownload = await normalizedDownloadPromise;
