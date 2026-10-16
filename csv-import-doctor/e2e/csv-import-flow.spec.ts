@@ -245,6 +245,18 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(app.locator('body')).toContainText('Option1 name has no matching value on this product row.');
 
+  const marketCompareAtDependency = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-market-compare-at-dependency.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-market-compare-at-dependency.csv',
+    mimeType: 'text/csv',
+    buffer: marketCompareAtDependency,
+  });
+  await expect(app.locator('body')).toContainText('A fixed Price / South America is required when Compare At Price / South America is set.');
+  await expect(app.getByRole('link', { name: /Fuente de Shopify/ })).toHaveAttribute(
+    'href',
+    'https://help.shopify.com/en/manual/markets/customizations/catalogs',
+  );
+
   await app.getByLabel('Tipo de importación').selectOption('update');
   await expect(app.getByText(/If you enable Shopify overwrite/)).toBeVisible();
 

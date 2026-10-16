@@ -1,9 +1,10 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.43';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.44';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
+const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
 const MAX_SHOPIFY_PRODUCT_CSV_BYTES = 15_000_000;
 const MAX_SHOPIFY_PRODUCT_TAGS = 250;
@@ -52,6 +53,7 @@ const RECOMMENDATION_RULES = new Set([
   'product-handle-contains-undocumented-characters',
   'unsupported-product-option-column',
   'product-option-name-missing-value',
+  'market-compare-at-requires-fixed-price',
 ]);
 const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'URL handle': ['Handle'],
@@ -363,6 +365,15 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const monetaryColumnIndices = csv.headers
     .map((header, index) => monetaryHeaders.has(header) ? index : -1)
     .filter((index) => index >= 0);
+  const marketCompareAtColumns = csv.headers
+    .map((header, columnIndex) => {
+      const match = /^(?:Compare At Price|Compare-at price) \/ (.+)$/.exec(header);
+      if (!match) return undefined;
+      const matchingPriceColumn = csv.headers.indexOf(`Price / ${match[1]}`);
+      return { header, market: match[1], columnIndex, matchingPriceColumn };
+    })
+    .filter((column): column is { header: string; market: string; columnIndex: number; matchingPriceColumn: number } =>
+      column !== undefined);
   const optionValueIndices = ['Option1 value', 'Option2 value', 'Option3 value']
     .map((header) => headerIndex(csv.headers, header))
     .filter((index): index is number => index !== undefined);
@@ -672,6 +683,22 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
           PRODUCT_CSV_SOURCE,
         ));
       }
+    }
+
+    for (const { header, market, columnIndex, matchingPriceColumn } of marketCompareAtColumns) {
+      const compareAtPrice = (row[columnIndex] ?? '').trim();
+      const marketPrice = matchingPriceColumn < 0 ? '' : (row[matchingPriceColumn] ?? '').trim();
+      if (!compareAtPrice || marketPrice) continue;
+
+      issues.push(makeIssue(
+        'market-compare-at-requires-fixed-price',
+        'warning',
+        `A fixed Price / ${market} is required when ${header} is set.`,
+        visibleRow,
+        header,
+        `Shopify documents that a fixed compare-at price for a market requires a fixed price for the same product in that market. Add the intended Price / ${market}, or verify the catalog pricing setup; this advisory does not modify either value.`,
+        MARKET_CATALOGS_SOURCE,
+      ));
     }
 
     if (handle && /\s/u.test(rawHandle)) {
