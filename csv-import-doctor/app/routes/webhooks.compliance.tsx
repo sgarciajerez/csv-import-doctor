@@ -1,14 +1,12 @@
 import type { ActionFunctionArgs } from 'react-router';
 import { authenticate } from '../shopify.server';
 import db from '../db.server';
-import { processComplianceWebhook } from '../privacy-compliance.mjs';
+import { handleComplianceWebhook } from '../privacy-compliance.mjs';
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, topic } = await authenticate.webhook(request);
-
-  return processComplianceWebhook({
-    shop,
-    topic,
+  return handleComplianceWebhook({
+    request,
+    authenticateWebhook: authenticate.webhook,
     deleteShopSessions: async (shopDomain: string) => {
       await db.session.deleteMany({ where: { shop: shopDomain } });
     },

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import test from 'node:test';
 import { ApiVersion, AppDistribution, shopifyApp } from '@shopify/shopify-app-react-router/server';
-import { processComplianceWebhook } from '../app/privacy-compliance.mjs';
+import { handleComplianceWebhook, processComplianceWebhook } from '../app/privacy-compliance.mjs';
 
 const webhookTestSecret = 'fixture-only-webhook-secret';
 const webhookAuth = shopifyApp({
@@ -31,17 +31,13 @@ test('a valid Shopify-signed SHOP_REDACT request authenticates and deletes only 
     body,
   });
 
-  const context = await webhookAuth(request);
   const deletedShops = [];
-  const response = await processComplianceWebhook({
-    topic: context.topic,
-    shop: context.shop,
+  const response = await handleComplianceWebhook({
+    request,
+    authenticateWebhook: webhookAuth,
     deleteShopSessions: async (shopDomain) => { deletedShops.push(shopDomain); },
   });
 
-  assert.equal(context.topic, 'SHOP_REDACT');
-  assert.equal(context.shop, shop);
-  assert.equal(context.payload.shop_domain, shop);
   assert.equal(response.status, 200);
   assert.deepEqual(deletedShops, [shop]);
 
@@ -56,7 +52,12 @@ test('a valid Shopify-signed SHOP_REDACT request authenticates and deletes only 
     },
     body: body.replace('123', '456'),
   });
-  await assert.rejects(webhookAuth(tamperedRequest), (error) => error instanceof Response && error.status === 401);
+  await assert.rejects(handleComplianceWebhook({
+    request: tamperedRequest,
+    authenticateWebhook: webhookAuth,
+    deleteShopSessions: async (shopDomain) => { deletedShops.push(shopDomain); },
+  }), (error) => error instanceof Response && error.status === 401);
+  assert.deepEqual(deletedShops, [shop]);
 });
 
 test('SHOP_REDACT deletes the store session set and duplicate deliveries remain safe', async () => {

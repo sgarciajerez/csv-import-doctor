@@ -16,3 +16,11 @@ export async function processComplianceWebhook({ topic, shop, deleteShopSessions
   // Customer and order data are not stored by this app.
   return new Response(null, { status: 200 });
 }
+
+/**
+ * @param {{request: Request, authenticateWebhook: (request: Request) => Promise<{topic: string, shop: string}>, deleteShopSessions: (shop: string) => Promise<unknown>}} input
+ */
+export async function handleComplianceWebhook({ request, authenticateWebhook, deleteShopSessions }) {
+  const { topic, shop } = await authenticateWebhook(request);
+  return processComplianceWebhook({ topic, shop, deleteShopSessions });
+}
