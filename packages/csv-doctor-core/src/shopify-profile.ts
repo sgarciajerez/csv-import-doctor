@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.40';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.41';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -441,7 +441,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   csv.headers.forEach((header) => {
     const trimmed = header.trim();
     if (!trimmed || isVariantMetafieldHeader(header)) return;
-    const unsupportedOptionHeader = /^Option(\d+) (?:name|value|LinkedTo)$/i.exec(header);
+    const unsupportedOptionHeader = /^Option(\d+) (?:name|value|LinkedTo)$/i.exec(trimmed);
     if (unsupportedOptionHeader && Number(unsupportedOptionHeader[1]) > 3) {
       issues.push(makeIssue(
         'unsupported-product-option-column',
@@ -451,6 +451,16 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
         header,
         'Shopify’s product CSV guide documents Option1, Option2, and Option3 and states that a product can have at most three options. Verify the source column or map its data manually; the app preserves the header and values and does not claim a specific importer outcome.',
       ));
+      if (header !== trimmed) {
+        issues.push(makeIssue(
+          'header-whitespace',
+          'warning',
+          'A product CSV header has leading or trailing whitespace.',
+          1,
+          header,
+          'Shopify warns that extra whitespace in a header can cause header errors. Remove the surrounding whitespace manually; the app leaves the header unchanged.',
+        ));
+      }
       return;
     }
     if (STATIC_PRODUCT_HEADERS.has(header) || hasExactDynamicProductHeader(header)) return;
