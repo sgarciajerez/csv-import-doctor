@@ -168,6 +168,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(appBody).toContainText('Shopify recommends avoiding accented characters in product tags.');
 
+  const productCategoryIds = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-category-ids.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-category-ids.csv',
+    mimeType: 'text/csv',
+    buffer: productCategoryIds,
+  });
+  await expect(appBody).toContainText("This Product category ID is not in Shopify's 2026-08 taxonomy release.");
+
   const inventoryWithoutTracker = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-inventory-without-tracker.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-inventory-without-tracker.csv',

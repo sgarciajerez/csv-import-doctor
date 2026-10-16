@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.32`
+Profile version: `shopify-product-csv-2026-10-16.33`
+
+Changes in `.33`: check category-ID-shaped `Product category` values against Shopify Standard Product Taxonomy release `2026-08`, the latest stable release reviewed on 2026-10-16. The 14,606 English taxonomy IDs are generated from Shopify's pinned `categories.en.json.gz` release asset by `scripts/update-shopify-taxonomy.mjs`; the required MIT notice is in `licenses/SHOPIFY_PRODUCT_TAXONOMY_MIT.txt`. An unrecognized ID receives an informational recommendation with the pinned taxonomy release link; it is not called an import error because a newer taxonomy may exist in a shop. Full breadcrumbs are not compared because they may be localized. The app preserves the supplied value.
 
 Changes in `.32`: show an informational recommendation when product tags contain accented Latin characters, following Shopify's advice to avoid accented characters in tags. Detection handles composed and decomposed Unicode forms. Shopify does not document these tags as import failures; the app preserves the values and does not suggest deletion or translation.
 
@@ -15,6 +17,8 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 ## Official sources checked 2026-10-16
 
 - [Using CSV files to import and export products](https://help.shopify.com/en/manual/products/import-export/using-csv) â€” product CSV columns, required fields, variant continuation rows, UTF-8/LF formatting, and related-column behavior.
+- [Shopify Standard Product Taxonomy v2026-08](https://github.com/Shopify/product-taxonomy/releases/tag/v2026-08) â€” pinned English category IDs used for advisory membership checks; the downloadable source asset is `categories.en.json.gz`.
+- [Shopify product-taxonomy license](https://github.com/Shopify/product-taxonomy/blob/main/LICENSE) â€” MIT; its required notice is included in this repository.
 - [Solutions to common product CSV import problems](https://help.shopify.com/en/manual/products/import-export/common-import-issues) â€” documents invalid inventory policy and quantity values, blank tracked quantities, and common import errors.
 - [Importing products with a CSV file](https://help.shopify.com/en/manual/products/import-export/import-products/) â€” import behavior, dev-store testing guidance, exact-header troubleshooting, and common import errors.
 - [Solutions to common product CSV import problems](https://help.shopify.com/en/manual/products/import-export/common-import-issues) â€” includes the older product template header row and examples.
@@ -75,6 +79,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 | Header or pattern | Status in current Shopify documentation | Profile behavior |
 | --- | --- | --- |
 | `Title` | Current product header; required for creation and update | Validate presence and product-start row value according to mode |
+| `Product category` | Shopify taxonomy category ID or full standard category breadcrumb | Check category-ID-shaped values against pinned release `2026-08`; report unknown IDs as informational only because the merchant's taxonomy may be newer. Do not validate breadcrumbs because they can be localized. |
 | `URL handle` | Shopify says handles can contain letters, dashes, and numbers, but cannot contain spaces | Warn on whitespace in a nonblank value; preserve it and avoid inferring restrictions beyond the documented space constraint |
 | `Tags` | Comma-separated tags; maximum 250 per product; avoid accented characters and symbols | Count non-empty entries and warn above 250; inform on accented Latin characters as advisory only; preserve all tag text |
 | `Barcodes` | Up to 20 codes per product or variant, separated by semicolons; backslash escapes special characters | Count values while respecting escape sequences; warn over 20 and preserve the cell |

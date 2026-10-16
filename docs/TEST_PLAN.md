@@ -12,6 +12,7 @@ Initial core coverage:
 - Create/update profile requirements and product variant continuation rows.
 - Sourced field limits at exact boundary and over-limit: URL-handle whitespace, 255-character Collection values, 250 comma-separated product tags, and 20 semicolon-separated barcodes including escaped separators; unit tests confirm the analyzer preserves the original cell, and E2E confirms limit messages are visible.
 - Tags: detect accented Latin characters in composed and decomposed Unicode spellings; report as information in create and update without claiming import failure, changing, translating, or removing values; leave plain unaccented tags clear.
+- Product category IDs: recognize valid root and nested IDs from the pinned Shopify taxonomy, inform on an unknown ID without claiming Shopify rejects it, preserve all values, and do not diagnose full breadcrumbs that may be localized.
 - Product image maximum at 250/251 rows for one handle, including continuation rows; confirm only one warning is emitted and values are preserved. Verify variant image references are documented as outside this count.
 - Image URLs: test absolute HTTPS, HTTP, relative/malformed, and embedded credentials for product and variant image columns; verify the app never requests the supplied image URL and never claims public reachability is verified.
 - Product image filename suffixes: test `_thumb`, `_small`, `_medium` with and without extensions, ignore query-string matches, preserve URLs, and keep variant image references outside this product-field-specific check.

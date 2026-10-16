@@ -1,6 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
+import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.32';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.33';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -26,6 +27,7 @@ const RECOMMENDATION_RULES = new Set([
   'inventory-quantity-without-tracker',
   'inventory-quantity-single-location-only',
   'product-tags-contain-accented-characters',
+  'unrecognized-shopify-product-category-id',
   'blank-price-may-fail-import',
   'invalid-product-money-format',
   'custom-fulfillment-service-handle-format',
@@ -330,6 +332,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const titleIndex = headerIndex(csv.headers, 'Title');
   const handleIndex = headerIndex(csv.headers, 'URL handle');
   const collectionIndex = csv.headers.indexOf('Collection');
+  const productCategoryIndex = csv.headers.indexOf('Product category');
   const tagsIndex = csv.headers.indexOf('Tags');
   const barcodesIndex = csv.headers.indexOf('Barcodes');
   const giftCardIndex = csv.headers.indexOf('Gift card');
@@ -719,6 +722,20 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       }
     }
     if (startsProduct) {
+      if (productCategoryIndex >= 0) {
+        const categoryValue = (row[productCategoryIndex] ?? '').trim();
+        if (/^[A-Za-z]{2}(?:-\d+)*$/.test(categoryValue) && !SHOPIFY_PRODUCT_CATEGORY_IDS.has(categoryValue)) {
+          issues.push(makeIssue(
+            'unrecognized-shopify-product-category-id',
+            'info',
+            `This Product category ID is not in Shopify's ${SHOPIFY_TAXONOMY_VERSION} taxonomy release.`,
+            visibleRow,
+            csv.headers[productCategoryIndex],
+            `Shopify accepts a standard category ID or full category breadcrumb. This ID is absent from the pinned ${SHOPIFY_TAXONOMY_VERSION} English taxonomy data, which might be older than your store's current taxonomy. Verify the value against Shopify before changing it; this diagnostic does not assert import failure and the cell remains unchanged. Breadcrumbs are not validated because they may be localized.`,
+            `https://github.com/Shopify/product-taxonomy/releases/tag/v${SHOPIFY_TAXONOMY_VERSION}`,
+          ));
+        }
+      }
       if (collectionIndex >= 0) {
         const collectionName = row[collectionIndex] ?? '';
         const collectionLength = unicodeCodePointLength(collectionName);
