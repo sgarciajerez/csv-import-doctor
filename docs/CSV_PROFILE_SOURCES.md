@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.57`
+Profile version: `shopify-product-csv-2026-10-16.58`
+
+Changes in `.58`: detect Markets catalog CSVs using the required `Catalog Title` header together with a catalog-specific `Fixed Price`, `Compare At`, or `Published` header. Emit a file-level recommendation and skip product checks, because Shopify documents a separate catalog CSV schema. Product files that merely share `Handle` and `SKU` are not classified as catalogs; all catalog data is preserved.
 
 Changes in `.57`: when one or more unit-price measurement values are present but the four expected fields are not all populated, recommend reviewing the measurement quartet together. Shopify explains that unit price is calculated from product price plus total and base measurements, and says all four CSV columns are used when updating unit pricing. The diagnostic is advisory, skips all-blank groups and duplicate headers, and preserves values; it does not infer unit compatibility or reject an import.
 
@@ -89,6 +91,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - For creating products, `Title` is the only always-required column; adding variants also requires `URL handle`.
 - For updates, `URL handle` and `Title` are required. Variant data can depend on `Option1 name` and `Option1 value`.
 - Shopify says a fixed `Compare At Price / [Market]` requires a fixed `Price / [Market]`. The profile warns when the compare-at value is supplied while its corresponding market price is blank or absent, preserves both values, and links to the Markets catalog guidance. It does not infer currency values or convert prices.
+- Shopify Markets catalogs use a distinct CSV schema with `Catalog Title`, `SKU`, `Handle`, `Fixed Price`, `Compare At`, and `Published`. A catalog-type recommendation is emitted when the required title and at least one catalog-specific field are present; product validation is skipped to avoid misleading product diagnostics. This is format identification only, not catalog-specific validation.
 - Shopify says a compare-at price must be higher than its corresponding price to display a sale price. The profile compares valid numeric base and fixed-market price pairs row by row, including verified legacy base headers; it advises when the compare-at value is equal or lower. It skips blank, malformed, or ambiguous pairs, does not classify the CSV as unimportable, and preserves both amounts.
 - For exact fixed-market `Price / [Market]` and compare-at headers, nonnumeric text or currency symbols receive the existing monetary-format recommendation. This applies Shopify's general product CSV instruction about price values to dynamic fixed-market money fields; the app describes this as a review recommendation because Shopify does not separately enumerate their accepted numeric syntax.
 - Shopify calculates unit pricing from the product price and total/base measurement fields, and instructs merchants to include all four measurement columns when updating unit pricing through CSV. The profile recommends reviewing a partially populated quartet, but does not enforce numeric ranges or compatibility between units.

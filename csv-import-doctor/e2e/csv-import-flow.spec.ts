@@ -560,6 +560,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(appBody).toContainText('Unit price measurement fields are incomplete; review all four values together.');
 
+  const marketCatalog = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-market-catalog.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-market-catalog.csv',
+    mimeType: 'text/csv',
+    buffer: marketCatalog,
+  });
+  await expect(appBody).toContainText('This looks like a Shopify Markets catalog CSV; product checks were skipped.');
+
   const excessiveTags = Array.from({ length: 251 }, (_, index) => `tag-${index}`).join(',');
   await app.locator('input[type="file"]').setInputFiles({
     name: 'tags-over-limit.csv',

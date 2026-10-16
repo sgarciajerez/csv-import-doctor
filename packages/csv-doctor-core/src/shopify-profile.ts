@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.57';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.58';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -20,6 +20,7 @@ const UNIT_PRICE_HEADERS = [
 const RECOMMENDATION_RULES = new Set([
   'inventory-csv-format-detected',
   'inventory-csv-format-possible',
+  'market-catalog-csv-format-detected',
   'legacy-product-headers-detected',
   'update-overwrite-blank-semantics',
   'variant-option-change-may-replace-ids',
@@ -382,6 +383,21 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   ];
   const isInventoryCsv = normalizedHeaders.has('location')
     && inventorySpecificColumns.some((header) => normalizedHeaders.has(header));
+  const isMarketCatalogCsv = normalizedHeaders.has('catalog title')
+    && ['fixed price', 'compare at', 'published'].some((header) => normalizedHeaders.has(header));
+
+  if (isMarketCatalogCsv) {
+    issues.push(makeIssue(
+      'market-catalog-csv-format-detected',
+      'warning',
+      'This looks like a Shopify Markets catalog CSV; product checks were skipped.',
+      1,
+      'Catalog Title',
+      'Shopify Markets catalog CSVs use a separate format for catalog pricing and product availability. Analyze this file with a catalog-specific profile when available.',
+      MARKET_CATALOGS_SOURCE,
+    ));
+    return issues;
+  }
 
   const handleHeaderIndex = csv.headers.findIndex((header) => ['handle', 'url handle'].includes(header.trim().toLowerCase()));
   const titleHeaderIndex = csv.headers.findIndex((header) => header.trim().toLowerCase() === 'title');
