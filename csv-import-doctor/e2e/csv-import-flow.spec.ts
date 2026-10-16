@@ -48,6 +48,13 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(privacyPage.getByText(/tokens de acceso y renovación/i)).toBeVisible();
   await privacyPage.close();
 
+  await app.getByRole('link', { name: 'Guía rápida de uso' }).click();
+  await expect.poll(() => appFrame.url()).toContain('/guide');
+  await expect(app.getByText(/No importa ni modifica productos en Shopify/i)).toBeVisible();
+  await expect(app.getByText(/El navegador analiza hasta 20 MB y 100.000 filas/i)).toBeVisible();
+  await app.getByRole('button', { name: 'Volver al analizador' }).click();
+  await expect(app.getByLabel('Tipo de importación')).toBeVisible();
+
   const importMode = app.getByLabel('Tipo de importación');
   await importMode.focus();
   await page.keyboard.press('Tab');

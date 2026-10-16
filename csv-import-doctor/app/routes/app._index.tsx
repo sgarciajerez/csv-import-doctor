@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, CSSProperties } from 'react';
 import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
+import { Link } from 'react-router';
 import {
   applyRepairs,
   createAnalysisReport,
@@ -266,6 +267,7 @@ export default function Index() {
             Shopify procesa el inicio de sesión. La app conserva en su servidor los datos técnicos de esa sesión; no consulta productos ni clientes de la tienda.
             {' '}<a href="/privacy" target="_blank" rel="noreferrer">Consulta qué datos se guardan y durante cuánto tiempo.</a>
           </p>
+          <p style={{ margin: 0 }}><Link to="/app/guide">Guía rápida de uso</Link></p>
           <p role="status" aria-live="polite" aria-atomic="true" style={{ margin: 0 }}>{analysisAnnouncement}</p>
           <label style={{ display: 'grid', gap: 6 }}>
             <span>Tipo de importación</span>
