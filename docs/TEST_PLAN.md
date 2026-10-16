@@ -2,7 +2,7 @@
 
 Initial core coverage:
 
-- CI on pushes and pull requests to `develop` and `master` installs each workspace from its lockfile and runs lint, typecheck, unit tests, and production build for both the CSV core and Shopify app; authenticated E2E remains a separately configured gate.
+- CI on pushes and pull requests to `develop` and `master` installs the root core workspace and the Shopify app from their lockfiles, then runs lint, typecheck, unit tests, and production build for both; authenticated E2E remains a separately configured gate.
 - Diagnostic contract over every CSV fixture in both create and update modes: require stable IDs, complete issue metadata, valid row/column references, source and profile version on Shopify findings, and a catalog entry for every emitted rule; map Papa Parse parser codes to the documented parser rule template.
 - UTF-8 BOM, explicit rejection of invalid UTF-8, quoted delimiters, escaped quotes, embedded newlines, and Unicode.
 - Duplicate headers and rows with too few or too many cells.
