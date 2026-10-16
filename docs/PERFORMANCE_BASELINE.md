@@ -18,6 +18,8 @@ The E2E timer starts immediately before `setInputFiles` and stops after the anal
 | Near local analysis limit | 19,999,975-byte CSV, one product row, 19,999,950-character description | 2,156 ms | Analysis completes and reports Shopify's 15 MB import limit; preview renders only 501 characters including ellipsis; downloaded CSV reparses with the full description length. |
 | Row limit | 100,001 product rows with one short field each | 489 ms | The limit diagnostic appears; CSV and JSON downloads are disabled. |
 
+Four later authenticated E2E runs on the same workstation, while validating UI changes, observed 2,782–3,222 ms for the near-limit case and 989–1,032 ms for the row-limit case. The range reflects run-to-run variation under test load; it is not a device-independent performance budget.
+
 The long-cell case is above Shopify's product import limit but below CSV Import Doctor's 20 MB local analysis cap. It protects the UI from inserting a near-20 MB string into a table cell; the app reports the import-size problem, and the exported source data is not truncated.
 
 ## Reproduction
