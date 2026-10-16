@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.45`
+Profile version: `shopify-product-csv-2026-10-16.46`
+
+Changes in `.46`: for dynamic `Included / [Market]` columns, show an informational recommendation when a product-start row contains a nonblank value other than `true` or `false` (case-insensitive). Shopify describes these columns as market availability and documents `true` as the default, but does not enumerate every accepted value spelling. The rule therefore asks merchants to confirm intent, preserves the value, and does not claim Shopify will reject it. Blank cells and `true`/`false` values do not produce this note.
 
 Changes in `.45`: recognize explicit `Video URL`, `Product video URL`, `3D model URL`, and `Product 3D model URL` headers and warn that Shopify's product CSV import supports image URLs, not videos or 3D models. Preserve the columns and values. If a recognized media header has incorrect casing or surrounding whitespace, also keep the existing header diagnostic.
 

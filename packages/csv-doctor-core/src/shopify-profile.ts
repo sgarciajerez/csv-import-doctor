@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.45';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.46';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -55,6 +55,7 @@ const RECOMMENDATION_RULES = new Set([
   'product-option-name-missing-value',
   'market-compare-at-requires-fixed-price',
   'unsupported-product-media-column',
+  'unrecognized-market-included-value',
 ]);
 const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'URL handle': ['Handle'],
@@ -358,6 +359,9 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const collectionIndex = csv.headers.indexOf('Collection');
   const productCategoryIndex = csv.headers.indexOf('Product category');
   const tagsIndex = csv.headers.indexOf('Tags');
+  const marketIncludedIndices = csv.headers
+    .map((header, columnIndex) => /^Included \/ .+$/.test(header) ? columnIndex : -1)
+    .filter((columnIndex) => columnIndex >= 0);
   const barcodesIndex = csv.headers.indexOf('Barcodes');
   const giftCardIndex = csv.headers.indexOf('Gift card');
   const imageIndices = ['Product image URL', 'Image Src']
@@ -660,6 +664,21 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     }
 
     if (startsProduct) {
+      for (const columnIndex of marketIncludedIndices) {
+        const value = (row[columnIndex] ?? '').trim();
+        if (!value || /^(?:true|false)$/i.test(value)) continue;
+
+        issues.push(makeIssue(
+          'unrecognized-market-included-value',
+          'info',
+          `Review the value in ${csv.headers[columnIndex]} for market availability.`,
+          visibleRow,
+          csv.headers[columnIndex],
+          'Shopify describes Included / [Market] as whether the product is available in that market and documents true as the default, but does not list all accepted value spellings. Confirm that this value matches the intended market availability; this note does not assert that Shopify will reject it. The app preserves the cell.',
+          PRODUCT_CSV_SOURCE,
+        ));
+      }
+
       for (const optionNumber of [1, 2, 3]) {
         const optionNameIndex = headerIndex(csv.headers, `Option${optionNumber} name`);
         const optionValueIndex = headerIndex(csv.headers, `Option${optionNumber} value`);

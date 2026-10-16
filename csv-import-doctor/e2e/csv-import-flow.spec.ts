@@ -257,6 +257,15 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     'https://help.shopify.com/en/manual/markets/customizations/catalogs',
   );
 
+  const marketIncludedValues = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-market-included-values.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-market-included-values.csv',
+    mimeType: 'text/csv',
+    buffer: marketIncludedValues,
+  });
+  await expect(app.locator('body')).toContainText('Review the value in Included / United States for market availability.');
+  await expect(app.locator('body')).toContainText('Review the value in Included / South America for market availability.');
+
   const unsupportedMediaColumns = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-unsupported-media-columns.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-unsupported-media-columns.csv',
