@@ -96,8 +96,9 @@ Antes de cerrar cualquier requisito, registrar evidencia verificable en `docs/PR
 - Revocar `ObjectURL`, terminar Workers al cancelar o desmontar la interfaz y limpiar referencias al archivo al reiniciar el flujo.
 - Mantener secretos fuera del repositorio; los artefactos de autenticación E2E permanecen ignorados por Git.
 - Publicar una explicación de privacidad y límites de tratamiento en la interfaz y en la política de privacidad antes de distribuir la app.
+- Suscribirse a `customers/data_request`, `customers/redact` y `shop/redact` antes de publicar en Shopify App Store; autenticar y responder correctamente aunque no se almacenen datos de clientes. `shop/redact` debe eliminar los datos de sesión de esa tienda.
 
-**Criterios de aceptación:** prueba automatizada de no transmisión, revisión de Network durante el flujo, búsqueda de logs/telemetría y verificación de que archivos de auth y secretos no aparecen en Git.
+**Criterios de aceptación:** prueba automatizada de no transmisión, revisión de Network durante el flujo, búsqueda de logs/telemetría, verificación de que archivos de auth y secretos no aparecen en Git, política pública coherente con datos y retención reales, y webhooks de cumplimiento comprobados antes de distribución.
 
 ### R10-06 — Rendimiento y límites comprobados
 

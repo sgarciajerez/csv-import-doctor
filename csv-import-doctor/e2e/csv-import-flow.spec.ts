@@ -27,6 +27,27 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   if (!appFrame) throw new Error('Shopify did not load the embedded app frame.');
   await appFrame.waitForLoadState('networkidle');
 
+  const complianceEndpoint = new URL('/webhooks/compliance', appFrame.url()).toString();
+  const invalidHmacWebhook = await page.request.post(complianceEndpoint, {
+    data: {},
+    headers: {
+      'X-Shopify-Hmac-Sha256': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+      'X-Shopify-Topic': 'customers/data_request',
+      'X-Shopify-Shop-Domain': 'csv-import-doctor-dev-okolejxc.myshopify.com',
+      'X-Shopify-Webhook-Id': 'e2e-invalid-signature',
+    },
+  });
+  expect(invalidHmacWebhook.status()).toBe(401);
+
+  await expect(app.getByText(/el archivo se lee y analiza en este navegador/i)).toBeVisible();
+  const privacyPagePromise = page.waitForEvent('popup');
+  await app.getByRole('link', { name: /consulta qué datos se guardan/i }).click();
+  const privacyPage = await privacyPagePromise;
+  await expect(privacyPage.getByRole('heading', { name: 'Privacidad de CSV Import Doctor' })).toBeVisible();
+  await expect(privacyPage.getByText(/El contenido del CSV.*Web Worker/i)).toBeVisible();
+  await expect(privacyPage.getByText(/tokens de acceso y renovación/i)).toBeVisible();
+  await privacyPage.close();
+
   const fixture = await readFile(resolve(process.cwd(), '..', 'fixtures', 'e2e-review.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'e2e-review.csv',

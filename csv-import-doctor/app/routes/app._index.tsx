@@ -253,6 +253,10 @@ export default function Index() {
           <p style={{ margin: 0, color: '#616161' }}>
             El archivo se lee y analiza en este navegador. No se envía a Shopify ni al servidor de la app.
           </p>
+          <p style={{ margin: 0, color: '#616161' }}>
+            Shopify procesa el inicio de sesión. La app conserva en su servidor los datos técnicos de esa sesión; no consulta productos ni clientes de la tienda.
+            {' '}<a href="/privacy" target="_blank" rel="noreferrer">Consulta qué datos se guardan y durante cuánto tiempo.</a>
+          </p>
           <p role="status" aria-live="polite" aria-atomic="true" style={{ margin: 0 }}>{analysisAnnouncement}</p>
           <label style={{ display: 'grid', gap: 6 }}>
             <span>Tipo de importación</span>

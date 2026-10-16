@@ -11,3 +11,7 @@ Shopify's current scaffold flow uses `shopify app init` and creates a Dev Dashbo
 ## 2026-10-15 — Repairs require user selection and are revalidated
 
 Whitespace changes are suggestions with `review` safety. The core applies only selected proposals to a copy and requires callers to supply revalidation. CSV export preserves cell values by default for Shopify compatibility. Spreadsheet formula protection is opt-in because prefixing an apostrophe changes the exported value, and the serializer reports every affected cell.
+
+## 2026-10-16 — Shopify API versions stay aligned and stable
+
+Pin the same selected stable API version in `shopify.app.toml` and `app/shopify.server.ts`, and review it quarterly. On 2026-10-16 the latest stable release is `2026-10`; do not ship the `2027-01` release candidate. Check Shopify's [API versioning schedule](https://shopify.dev/docs/api/usage/versioning) when updating.

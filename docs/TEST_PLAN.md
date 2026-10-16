@@ -16,6 +16,9 @@ Initial core coverage:
 - Verify unknown columns and repeated SKUs are preserved and are not fatal errors.
 - CSV parse/serialize round-trip and formula-like values remain unmodified absent an explicit export policy.
 - Browser bundle has no Node-only imports; analysis makes no network requests.
+- Privacy transparency: verify the embedded UI links to the public privacy page, which discloses browser-only CSV processing, the Shopify session fields actually stored, current empty API scopes, retention behavior, and release-only facts still pending.
+- Compliance webhooks: verify TOML subscriptions for all three mandatory topics, `401` for unsigned/invalid HMAC POSTs, authenticated handling, idempotent session deletion for `SHOP_REDACT`, and 200 responses for customer requests when no customer data is stored. Exercise valid signed local requests or Shopify's webhook tooling before App Store distribution.
+- Shopify API version: at each quarterly review, verify that `shopify.app.toml` webhook `api_version` and the server `ApiVersion` enum use the selected supported stable version; never use a release candidate for production.
 
 Accessibility review before closing R10-07:
 
