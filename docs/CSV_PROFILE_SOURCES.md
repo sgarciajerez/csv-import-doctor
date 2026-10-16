@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.46`
+Profile version: `shopify-product-csv-2026-10-16.47`
+
+Changes in `.47`: reconcile the recognized-header matrix with the current downloadable Shopify product template checked on 2026-10-16. Preserve and recognize its exact `Variant Barcodes`, `OptionN Linked To`, `Tax code`, and unit-price measure headers even where the guide's column table uses different names or doesn't describe a value rule. Apply existing barcode-count and `LinkedTo`-format checks to the corresponding template spellings. Do not infer validation rules for tax codes or unit-price measures.
 
 Changes in `.46`: for dynamic `Included / [Market]` columns, show an informational recommendation when a product-start row contains a nonblank value other than `true` or `false` (case-insensitive). Shopify describes these columns as market availability and documents `true` as the default, but does not enumerate every accepted value spelling. The rule therefore asks merchants to confirm intent, preserves the value, and does not claim Shopify will reject it. Blank cells and `true`/`false` values do not produce this note.
 
@@ -44,6 +46,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 
 - [Creating catalogs for markets](https://help.shopify.com/en/manual/markets/customizations/catalogs) — fixed compare-at pricing requires a fixed product price for the market; market catalog CSV fields also document omitting currency symbols.
 - [Using CSV files to import and export products](https://help.shopify.com/en/manual/products/import-export/using-csv) â€” product CSV columns, required fields, variant continuation rows, UTF-8/LF formatting, and related-column behavior.
+- [Shopify's downloadable product CSV template](https://help.shopify.com/cdn/shopifycloud/product-knowledge/production/csv/product_template.csv) — exact template header row checked 2026-10-16; the fixture preserves this header set and adds dynamic Markets/metafield headers documented on the guide page.
 - [Shopify Standard Product Taxonomy v2026-08](https://github.com/Shopify/product-taxonomy/releases/tag/v2026-08) â€” pinned English category IDs used for advisory membership checks; the downloadable source asset is `categories.en.json.gz`.
 - [Shopify product-taxonomy license](https://github.com/Shopify/product-taxonomy/blob/main/LICENSE) â€” MIT; its required notice is included in this repository.
 - [Solutions to common product CSV import problems](https://help.shopify.com/en/manual/products/import-export/common-import-issues) â€” documents invalid inventory policy and quantity values, blank tracked quantities, and common import errors.
@@ -90,7 +93,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - The validator recognizes inventory CSVs with a `Location` column plus a documented inventory-only quantity field. It also recognizes wide â€œAvailableâ€ exports that have `Handle`, `Title`, at least two non-empty location columns with numeric/`Not stocked` values, and no known product data columns. A one-location candidate receives an informational warning and product checks continue because the pattern is ambiguous.
 - The parser can accept other delimiters for analysis, but Shopify product CSV output is normalized to commas and LF line endings; the source format receives a warning. When automatic detection is ambiguous, the app blocks repairs and downloads until an explicit delimiter choice and reparses the local file before the result can be trusted.
 - `fixtures/shopify-product-conflicting-aliases.csv` demonstrates mixed current and legacy spellings. The profile warns for those pairs while preserving the original header order and every value.
-- `fixtures/shopify-product-current-headers.csv` records the current documented fixed headers plus examples of International, Markets, Google Shopping, and product metafield headers; the contract test ensures none are reported as unknown or misspelled.
+- `fixtures/shopify-product-current-headers.csv` records the current downloadable template header row plus dynamic Markets and product-metafield examples; the contract test ensures these documented headers are not reported as unknown or misspelled. Template fields without a documented local validation rule remain pass-through data.
 - `fixtures/shopify-product-inventory-dependencies.csv` covers tracked and untracked rows, numeric and invalid quantities, policy values, custom versus built-in fulfillment services, a valid slug-style custom service, a service value with spaces and punctuation, and a tracker value outside Shopify's documented examples.
 - `fixtures/shopify-product-duplicate-variant-options.csv` includes one repeated option tuple under the same handle and the same tuple under another handle; only the same-product duplicate is diagnosed.
 - `fixtures/shopify-product-blank-price.csv` covers blank product and variant prices plus an image-only continuation row, which must not receive a price warning.

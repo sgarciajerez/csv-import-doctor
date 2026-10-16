@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.46';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.47';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -132,6 +132,9 @@ const VARIANT_COLUMNS = [
   'Continue selling when out of stock', 'Weight value (grams)', 'Weight unit for display',
   'Packed product length', 'Packed product width', 'Packed product height', 'Packed product dimension unit',
   'Requires shipping', 'Fulfillment service', 'Variant image URL',
+  'Variant Barcodes', 'Tax code', 'Unit price total measure', 'Unit price total measure unit',
+  'Unit price base measure', 'Unit price base measure unit',
+  'Option1 Linked To', 'Option2 Linked To', 'Option3 Linked To',
 ];
 const PRODUCT_BOOLEAN_HEADERS = new Set(['Published on online store', 'Published', 'Gift card']);
 const VARIANT_BOOLEAN_HEADERS = new Set(['Charge tax', 'Requires shipping', 'Variant Taxable', 'Variant Requires Shipping']);
@@ -141,10 +144,16 @@ const SEO_TEXT_LIMITS = [
   { header: 'SEO description', ruleId: 'seo-description-exceeds-limit', limit: 320 },
 ];
 
+const ADDITIONAL_SHOPIFY_TEMPLATE_HEADERS = new Set([
+  'Variant Barcodes', 'Option1 Linked To', 'Option2 Linked To', 'Option3 Linked To', 'Tax code',
+  'Unit price total measure', 'Unit price total measure unit', 'Unit price base measure', 'Unit price base measure unit',
+]);
+
 const STATIC_PRODUCT_HEADERS = new Set([
   'Title', 'URL handle', 'Collection', 'Description', 'Body (HTML)', 'Vendor', 'Product category', 'Type', 'Tags',
   'Published on online store', 'Published', 'Status', 'Product image URL', 'Image Src', 'Image position',
   'Image alt text', 'Image Alt Text', 'Gift card', 'SEO title', 'SEO description', ...VARIANT_COLUMNS,
+  ...ADDITIONAL_SHOPIFY_TEMPLATE_HEADERS,
   ...Object.keys(LEGACY_HEADER_ALIASES), ...Object.values(LEGACY_HEADER_ALIASES).flat(),
 ]);
 const NORMALIZED_STATIC_PRODUCT_HEADERS = new Set([...STATIC_PRODUCT_HEADERS].map((header) => header.toLocaleLowerCase()));
@@ -168,6 +177,8 @@ const PRODUCT_DATA_HEADERS = new Set([
   'variant sku', 'variant grams', 'variant inventory tracker', 'variant inventory qty',
   'variant inventory policy', 'variant fulfillment service', 'variant price', 'variant compare-at price',
   'variant requires shipping', 'variant taxable', 'variant barcode', 'published',
+  'variant barcodes', 'tax code', 'unit price total measure', 'unit price total measure unit',
+  'unit price base measure', 'unit price base measure unit', 'option1 linked to', 'option2 linked to', 'option3 linked to',
 ]);
 
 function isProductDataHeader(header: string): boolean {
@@ -362,7 +373,9 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const marketIncludedIndices = csv.headers
     .map((header, columnIndex) => /^Included \/ .+$/.test(header) ? columnIndex : -1)
     .filter((columnIndex) => columnIndex >= 0);
-  const barcodesIndex = csv.headers.indexOf('Barcodes');
+  const barcodesIndices = csv.headers
+    .map((header, index) => ['Barcodes', 'Variant Barcodes'].includes(header) ? index : -1)
+    .filter((index) => index >= 0);
   const giftCardIndex = csv.headers.indexOf('Gift card');
   const imageIndices = ['Product image URL', 'Image Src']
     .map((header) => headerIndex(csv.headers, header))
@@ -394,7 +407,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     .map((header) => headerIndex(csv.headers, header))
     .filter((index): index is number => index !== undefined);
   const optionLinkedToIndices = csv.headers
-    .map((header, index) => /^Option[123] LinkedTo$/.test(header) ? index : -1)
+    .map((header, index) => /^Option[123] Linked(?:To| To)$/.test(header) ? index : -1)
     .filter((index) => index >= 0);
   const variantDataIndices = VARIANT_COLUMNS
     .map((header) => headerIndex(csv.headers, header))
@@ -830,19 +843,21 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
         }
       }
     }
-    if (barcodesIndex >= 0 && (startsProduct || hasOptionValue || hasVariantData)) {
-      const barcodeValue = row[barcodesIndex] ?? '';
-      const barcodeCount = countBarcodeEntries(barcodeValue);
-      if (barcodeCount > MAX_SHOPIFY_BARCODES_PER_VARIANT) {
-        issues.push(makeIssue(
-          'variant-barcode-count-exceeds-limit',
-          'warning',
-          `This product or variant has ${barcodeCount} barcodes; Shopify allows a maximum of ${MAX_SHOPIFY_BARCODES_PER_VARIANT}.`,
-          visibleRow,
-          csv.headers[barcodesIndex],
-          'Shopify documents up to 20 barcodes per product or variant. Barcodes are separated by semicolons; escaped semicolons and backslashes are part of a barcode value and are not counted as separators. The app preserves the original cell.',
-          PRODUCT_CSV_SOURCE,
-        ));
+    if (startsProduct || hasOptionValue || hasVariantData) {
+      for (const columnIndex of barcodesIndices) {
+        const barcodeValue = row[columnIndex] ?? '';
+        const barcodeCount = countBarcodeEntries(barcodeValue);
+        if (barcodeCount > MAX_SHOPIFY_BARCODES_PER_VARIANT) {
+          issues.push(makeIssue(
+            'variant-barcode-count-exceeds-limit',
+            'warning',
+            `This product or variant has ${barcodeCount} barcodes; Shopify allows a maximum of ${MAX_SHOPIFY_BARCODES_PER_VARIANT}.`,
+            visibleRow,
+            csv.headers[columnIndex],
+            'Shopify documents up to 20 barcodes per product or variant. The current product template also uses the Variant Barcodes header. Values are separated by semicolons; escaped semicolons and backslashes are part of a barcode value and are not counted as separators. The app preserves the original cell.',
+            PRODUCT_CSV_SOURCE,
+          ));
+        }
       }
     }
 
