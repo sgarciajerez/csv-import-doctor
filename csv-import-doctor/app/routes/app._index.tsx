@@ -26,6 +26,7 @@ const NON_PRODUCT_FORMAT_RULES = new Set([
   'inventory-csv-format-detected',
   'market-catalog-csv-format-detected',
   'customer-csv-format-detected',
+  'orders-csv-format-detected',
   'product-csv-format-not-recognized',
 ]);
 

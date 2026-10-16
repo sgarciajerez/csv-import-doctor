@@ -592,6 +592,26 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     'https://help.shopify.com/en/manual/customers/import-export-customers',
   );
 
+  const orderCsv = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-order-export.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-order-export.csv',
+    mimeType: 'text/csv',
+    buffer: orderCsv,
+  });
+  await expect(appBody).toContainText('This looks like a Shopify order export; product checks were skipped.');
+  await expect(appBody).not.toContainText('This looks like a Shopify customer CSV');
+  await expect(appBody).not.toContainText('An update row with product data is missing its URL handle value.');
+  await expect(app.getByRole('link', { name: /Fuente de Shopify/ })).toHaveAttribute(
+    'href',
+    'https://help.shopify.com/en/manual/fulfillment/managing-orders/exporting-orders',
+  );
+  const orderCsvDownloadPromise = page.waitForEvent('download');
+  await app.getByRole('button', { name: 'Descargar CSV revisado' }).click();
+  const orderCsvDownload = await orderCsvDownloadPromise;
+  const exportedOrderCsv = parseCsv(await readFile(await orderCsvDownload.path(), 'utf8'));
+  expect(exportedOrderCsv.headers).toEqual(parseCsv(orderCsv.toString()).headers);
+  expect(exportedOrderCsv.rows).toEqual(parseCsv(orderCsv.toString()).rows);
+
   const unrelatedCsv = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-non-product.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-non-product.csv',

@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.60`
+Profile version: `shopify-product-csv-2026-10-16.61`
+
+Changes in `.61`: recognize Shopify order-export CSVs from `Name` plus multiple order-specific headers before customer detection. Order exports can contain `Email`, `Phone`, and `Tags`, so treating them as customer CSVs would misidentify the schema. Skip product checks, preserve the original data, and link to Shopify's order-export column reference; this identifies the format only and does not validate orders.
 
 Changes in `.60`: identify likely Shopify customer CSVs from the required `Email` header plus customer-specific columns, including the shared `Tags` field, and skip product validation. For unrelated CSVs with no recognized product fields, emit an informational file-type note and skip product-only required-header, delimiter, and value checks. A header one edit away from a supported product header keeps product diagnostics active so likely mistakes are still visible. Files and values are preserved; customer schemas are identified, not validated.
 
@@ -73,6 +75,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - [Creating catalogs for markets](https://help.shopify.com/en/manual/markets/customizations/catalogs) — fixed compare-at pricing requires a fixed product price for the market; market catalog CSV fields also document omitting currency symbols.
 - [Customizing B2B pricing using catalogs](https://help.shopify.com/en/manual/b2b/catalogs/creating-catalogs) — documents catalog CSV identifiers, quantity rules, and numbered volume-pricing break fields.
 - [Importing and exporting customer lists](https://help.shopify.com/en/manual/customers/import-export-customers) — required `Email` header, customer-specific columns, customer tags, and supported customer metafields.
+- [Exporting orders](https://help.shopify.com/en/manual/fulfillment/managing-orders/exporting-orders) — documents order-export headers such as `Name`, `Financial Status`, `Fulfillment Status`, and line-item columns; additional order line items appear on continuation rows.
 - [Setting sale prices](https://help.shopify.com/en/manual/products/details/product-pricing/sale-pricing) — Shopify displays a sale price only when the compare-at price is higher than the product price.
 - [Displaying unit prices for products](https://help.shopify.com/en/manual/products/details/product-pricing/unit-pricing) — unit price calculations use the product price plus total and base measurements; bulk updates through product CSV use four measurement columns.
 - [Using CSV files to import and export products](https://help.shopify.com/en/manual/products/import-export/using-csv) â€” product CSV columns, required fields, variant continuation rows, UTF-8/LF formatting, and related-column behavior.

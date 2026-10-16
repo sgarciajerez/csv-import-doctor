@@ -1,12 +1,13 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.60';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.61';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
 const B2B_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/b2b/catalogs/creating-catalogs';
 const CUSTOMER_CSV_SOURCE = 'https://help.shopify.com/en/manual/customers/import-export-customers';
+const ORDER_CSV_SOURCE = 'https://help.shopify.com/en/manual/fulfillment/managing-orders/exporting-orders';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
 const MAX_SHOPIFY_PRODUCT_CSV_BYTES = 15_000_000;
 const MAX_SHOPIFY_PRODUCT_TAGS = 250;
@@ -24,6 +25,7 @@ const RECOMMENDATION_RULES = new Set([
   'inventory-csv-format-possible',
   'market-catalog-csv-format-detected',
   'customer-csv-format-detected',
+  'orders-csv-format-detected',
   'product-csv-format-not-recognized',
   'legacy-product-headers-detected',
   'update-overwrite-blank-semantics',
@@ -441,6 +443,43 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
         ? 'Shopify Available inventory exports use location names as quantity-column headers. This format has no product-specific columns, and its location values are numeric quantities.'
         : 'Shopify inventory CSVs use a separate format for locations and stock quantities. Analyze this file with an inventory-specific profile when available.',
       INVENTORY_CSV_SOURCE,
+    ));
+    return issues;
+  }
+
+  const orderSpecificHeaders = [
+    'financial status',
+    'fulfillment status',
+    'paid at',
+    'fulfilled at',
+    'lineitem quantity',
+    'lineitem name',
+    'lineitem price',
+    'lineitem sku',
+    'payment references',
+    'refunded amount',
+  ];
+  const orderHeaderCount = orderSpecificHeaders.filter((header) => normalizedHeaders.has(header)).length;
+  const hasProductIdentityHeader = normalizedHeaders.has('title')
+    || normalizedHeaders.has('url handle')
+    || normalizedHeaders.has('handle')
+    || csv.headers.some((header) => {
+      const normalized = header.trim().toLowerCase();
+      return normalized !== 'tags' && normalized !== 'vendor' && isProductDataHeader(header);
+    });
+  const isOrderCsv = normalizedHeaders.has('name')
+    && orderHeaderCount >= 2
+    && !hasProductIdentityHeader;
+
+  if (isOrderCsv) {
+    issues.push(makeIssue(
+      'orders-csv-format-detected',
+      'warning',
+      'This looks like a Shopify order export; product checks were skipped.',
+      1,
+      'Financial Status',
+      'Shopify order exports use a separate schema for order, payment, fulfillment, customer, and line-item history. Additional line items can occupy continuation rows, so product CSV diagnostics do not apply. Analyze this file with an order-specific profile when available.',
+      ORDER_CSV_SOURCE,
     ));
     return issues;
   }

@@ -1,0 +1,3 @@
+Name,Email,Phone,Financial Status,Fulfillment Status,Lineitem quantity,Lineitem name,Lineitem price,Vendor,Tags
+#1001,merchant@example.invalid,+15555550100,paid,unfulfilled,1,Demo Mug,12.00,Example Vendor,first-order
+#1001,,,,,2,Demo Cup,8.00,,
