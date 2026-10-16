@@ -684,7 +684,8 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     mimeType: 'text/csv',
     buffer: Buffer.from(`Title,URL handle,Product image URL\nImage URL test,image-url-test,http://cdn.example.test/${privateImageUrlMarker}`, 'utf8'),
   });
-  await expect(appBody).toContainText('Shopify expects a publicly accessible HTTPS image URL without password protection.');
+  await expect(appBody).toContainText('This image URL uses HTTP; verify it is a public, direct image link before importing.');
+  await expect(appBody).toContainText('Because Shopify documentation differs on the scheme, this is informational only.');
   expect(requestUrls.join('\n')).not.toContain(privateImageUrlMarker);
   expect(requestBodies.join('\n')).not.toContain(privateImageUrlMarker);
 

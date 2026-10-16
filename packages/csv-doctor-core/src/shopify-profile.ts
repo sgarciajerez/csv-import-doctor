@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.62';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.63';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_MEDIA_SOURCE = 'https://help.shopify.com/en/manual/products/product-media/add-media';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
@@ -63,6 +63,7 @@ const RECOMMENDATION_RULES = new Set([
   'collection-name-exceeds-limit',
   'product-image-count-exceeds-limit',
   'image-url-not-public-https',
+  'image-url-uses-http',
   'image-url-likely-preview-link',
   'image-filename-uses-thumbnail-suffix',
   'invalid-option-linkedto-format',
@@ -1147,30 +1148,42 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     for (const imageUrlIndex of imageUrlIndices) {
       const imageUrl = (row[imageUrlIndex] ?? '').trim();
       if (!imageUrl) continue;
+      let parsedImageUrl: URL | undefined;
       let isAbsolutePublicHttpsUrl = false;
+      let isAbsolutePublicHttpUrl = false;
       try {
-        const parsedImageUrl = new URL(imageUrl);
-        isAbsolutePublicHttpsUrl = parsedImageUrl.protocol === 'https:'
-          && !parsedImageUrl.username
-          && !parsedImageUrl.password;
+        parsedImageUrl = new URL(imageUrl);
+        const hasNoEmbeddedCredentials = !parsedImageUrl.username && !parsedImageUrl.password;
+        isAbsolutePublicHttpsUrl = parsedImageUrl.protocol === 'https:' && hasNoEmbeddedCredentials;
+        isAbsolutePublicHttpUrl = parsedImageUrl.protocol === 'http:' && hasNoEmbeddedCredentials;
       } catch {
         // Invalid, relative, and non-URL values are reported below without making a network request.
       }
-      if (!isAbsolutePublicHttpsUrl) {
+      if (isAbsolutePublicHttpUrl) {
+        issues.push(makeIssue(
+          'image-url-uses-http',
+          'info',
+          'This image URL uses HTTP; verify it is a public, direct image link before importing.',
+          visibleRow,
+          csv.headers[imageUrlIndex],
+          'Shopify’s product media guidance recommends publicly accessible HTTPS image URLs, while its common import troubleshooting page refers to an `http://` image URL. Because Shopify documentation differs on the scheme, this is informational only. CSV Import Doctor does not request the URL or verify its accessibility; the original value is preserved.',
+          PRODUCT_MEDIA_SOURCE,
+        ));
+      } else if (!isAbsolutePublicHttpsUrl) {
         issues.push(makeIssue(
           'image-url-not-public-https',
           'warning',
-          'Shopify expects a publicly accessible HTTPS image URL without password protection.',
+          'This image value is not an absolute HTTP or HTTPS URL without embedded credentials.',
           visibleRow,
           csv.headers[imageUrlIndex],
-          'Shopify requires publicly accessible image URLs over HTTPS. This value is not an absolute HTTPS URL without embedded credentials. CSV Import Doctor does not request the URL, so it cannot confirm that the image exists or is publicly accessible. The original value is preserved.',
+          'Shopify expects a publicly accessible direct image URL and its product media guidance specifies HTTPS without password protection. This value is malformed, relative, uses another protocol, or embeds credentials. CSV Import Doctor does not request the URL, so it cannot confirm that the image exists or is publicly accessible. The original value is preserved.',
           PRODUCT_MEDIA_SOURCE,
         ));
         continue;
       }
 
       try {
-        if (isLikelyCloudPreviewImageUrl(new URL(imageUrl))) {
+        if (parsedImageUrl && isLikelyCloudPreviewImageUrl(parsedImageUrl)) {
           issues.push(makeIssue(
             'image-url-likely-preview-link',
             'warning',
@@ -1187,7 +1200,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
 
       if (imageIndices.includes(imageUrlIndex)) {
         try {
-          const imagePath = new URL(imageUrl).pathname;
+          const imagePath = parsedImageUrl?.pathname ?? '';
           const rawFilename = imagePath.split('/').pop() ?? '';
           const filename = decodeURIComponent(rawFilename);
           if (/_(?:thumb|small|medium)(?:\..+)?$/i.test(filename)) {

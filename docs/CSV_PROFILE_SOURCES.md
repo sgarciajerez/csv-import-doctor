@@ -1,14 +1,17 @@
-﻿# Shopify product CSV profile sources
+# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.62`
+Profile version: `shopify-product-csv-2026-10-16.63`
 
 Template verification on 2026-10-16: downloaded Shopify's live `product_template.csv` linked from the product CSV guide. Its 61 published headers match the first 61 headers in `fixtures/shopify-product-current-headers.csv` exactly; the fixture then adds documented dynamic-market/metafield examples and the import-only `Collection` column. No header drift was found.
 
 The pinned template fixture is also a unit-test contract: all current/template spellings and its dynamic market/metafield examples must avoid typo, unknown-header, capitalization, whitespace, unsupported-option, and unsupported-media findings. This catches regressions in recognition of the exact published template, but does not automatically fetch Shopify's source during CI.
 
-Image URL HTTPS and public-access diagnostics link to Shopify's product media guidance, which explicitly requires a publicly accessible `https://` URL without password protection for CSV image imports. The general product CSV guide documents public image URLs but does not state the HTTPS requirement itself.
+Image URL HTTPS guidance links to Shopify's product media page, which recommends a publicly accessible `https://` URL without password protection. The separate common import troubleshooting page mentions `http://`; because the official pages differ on scheme, HTTP is informational only and is not claimed to be import-incompatible.
+
 
 Taxonomy verification on 2026-10-16: Shopify's [release list](https://github.com/Shopify/product-taxonomy/releases) still marks `2026-08` as the latest stable release; the rolling `2026-11-unstable` dataset is not used for ID membership checks. Keep the bundled IDs pinned to `2026-08` until Shopify publishes a newer stable release.
+
+Changes in `.63`: distinguish HTTP image URLs from malformed, non-absolute, credential-bearing, or other-protocol URLs. Shopify's product media instructions recommend public HTTPS URLs, but its common troubleshooting guide references `http://`; HTTP therefore produces informational guidance rather than a warning implying import incompatibility. Invalid structure, non-HTTP(S) protocols, and embedded credentials remain warnings. The rule does not fetch or modify URLs.
 
 Changes in `.62`: warn locally when a `Product image URL`, legacy `Image Src`, or `Variant image URL` matches a recognizable Google Drive or Dropbox preview-link pattern. Shopify documents that cloud-storage sharing links can open preview pages instead of the image file and that these links can fail to import. This is a heuristic advisory, not a reachability check; it does not request or modify URLs, and direct-download patterns such as Google Drive `uc?export=download`, Dropbox `raw=1`, and `dl=1` are not flagged.
 
