@@ -51,7 +51,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   const importMode = app.getByLabel('Tipo de importación');
   await importMode.focus();
   await page.keyboard.press('Tab');
-  await expect(app.locator('input[type="file"]')).toBeFocused();
+  const fileInput = app.locator('input[type="file"]');
+  await expect(fileInput).toBeFocused();
+  const fileInputFocusStyle = await fileInput.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outlineStyle: style.outlineStyle, outlineWidth: Number.parseFloat(style.outlineWidth) };
+  });
+  expect(fileInputFocusStyle.outlineStyle).not.toBe('none');
+  expect(fileInputFocusStyle.outlineWidth).toBeGreaterThan(0);
   await importMode.focus();
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
