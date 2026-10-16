@@ -137,6 +137,19 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await app.getByLabel('Tipo de importación').selectOption('update');
   await expect(app.getByText(/If you enable Shopify overwrite/)).toBeVisible();
 
+  await app.getByLabel('Tipo de importación').selectOption('create');
+  const importerSmoke = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-import-smoke.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-import-smoke.csv',
+    mimeType: 'text/csv',
+    buffer: importerSmoke,
+  });
+  await expect(app.getByText('2 filas', { exact: true })).toBeVisible();
+  await expect(app.getByText('No se encontraron incidencias en las reglas actuales.')).toBeVisible();
+
+  await app.getByLabel('Tipo de importación').selectOption('update');
+  await expect(app.getByText(/If you enable Shopify overwrite/)).toBeVisible();
+
   const requiredValues = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-required-values.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-required-values.csv',
