@@ -2,6 +2,8 @@
 
 Profile version: `shopify-product-csv-2026-10-16.61`
 
+Template verification on 2026-10-16: downloaded Shopify's live `product_template.csv` linked from the product CSV guide. Its 61 published headers match the first 61 headers in `fixtures/shopify-product-current-headers.csv` exactly; the fixture then adds documented dynamic-market/metafield examples and the import-only `Collection` column. No header drift was found.
+
 Changes in `.61`: recognize Shopify order-export CSVs from `Name` plus multiple order-specific headers before customer detection. Order exports can contain `Email`, `Phone`, and `Tags`, so treating them as customer CSVs would misidentify the schema. Skip product checks, preserve the original data, and link to Shopify's order-export column reference; this identifies the format only and does not validate orders.
 
 Changes in `.60`: identify likely Shopify customer CSVs from the required `Email` header plus customer-specific columns, including the shared `Tags` field, and skip product validation. For unrelated CSVs with no recognized product fields, emit an informational file-type note and skip product-only required-header, delimiter, and value checks. A header one edit away from a supported product header keeps product diagnostics active so likely mistakes are still visible. Files and values are preserved; customer schemas are identified, not validated.
