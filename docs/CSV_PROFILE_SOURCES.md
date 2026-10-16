@@ -1,10 +1,12 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.61`
+Profile version: `shopify-product-csv-2026-10-16.62`
 
 Template verification on 2026-10-16: downloaded Shopify's live `product_template.csv` linked from the product CSV guide. Its 61 published headers match the first 61 headers in `fixtures/shopify-product-current-headers.csv` exactly; the fixture then adds documented dynamic-market/metafield examples and the import-only `Collection` column. No header drift was found.
 
 Taxonomy verification on 2026-10-16: Shopify's [release list](https://github.com/Shopify/product-taxonomy/releases) still marks `2026-08` as the latest stable release; the rolling `2026-11-unstable` dataset is not used for ID membership checks. Keep the bundled IDs pinned to `2026-08` until Shopify publishes a newer stable release.
+
+Changes in `.62`: warn locally when a `Product image URL`, legacy `Image Src`, or `Variant image URL` matches a recognizable Google Drive or Dropbox preview-link pattern. Shopify documents that cloud-storage sharing links can open preview pages instead of the image file and that these links can fail to import. This is a heuristic advisory, not a reachability check; it does not request or modify URLs, and direct-download patterns such as Google Drive `uc?export=download`, Dropbox `raw=1`, and `dl=1` are not flagged.
 
 Changes in `.61`: recognize Shopify order-export CSVs from `Name` plus multiple order-specific headers before customer detection. Order exports can contain `Email`, `Phone`, and `Tags`, so treating them as customer CSVs would misidentify the schema. Skip product checks, preserve the original data, and link to Shopify's order-export column reference; this identifies the format only and does not validate orders.
 
@@ -76,6 +78,8 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 
 ## Official sources checked 2026-10-16
 
+- [Adding product media](https://help.shopify.com/en/manual/products/product-media/add-media) — shared Google Drive or Dropbox links can open preview pages rather than direct image files; Shopify may reject or skip media when the URL does not provide a usable file.
+
 - [Creating catalogs for markets](https://help.shopify.com/en/manual/markets/customizations/catalogs) — fixed compare-at pricing requires a fixed product price for the market; market catalog CSV fields also document omitting currency symbols.
 - [Customizing B2B pricing using catalogs](https://help.shopify.com/en/manual/b2b/catalogs/creating-catalogs) — documents catalog CSV identifiers, quantity rules, and numbered volume-pricing break fields.
 - [Importing and exporting customer lists](https://help.shopify.com/en/manual/customers/import-export-customers) — required `Email` header, customer-specific columns, customer tags, and supported customer metafields.
@@ -139,6 +143,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - `fixtures/shopify-product-conflicting-aliases.csv` demonstrates mixed current and legacy spellings. The profile warns for those pairs while preserving the original header order and every value.
 - `fixtures/shopify-product-current-headers.csv` records the current downloadable template header row plus dynamic Markets and product-metafield examples; the contract test ensures these documented headers are not reported as unknown or misspelled. Template fields without a documented local validation rule remain pass-through data.
 - `fixtures/shopify-product-conflicting-image-aliases.csv` combines current and older image URL/alt-text headers from Shopify's current guide and older template example; tests require ambiguity warnings and exact round-trip preservation. Image count checks deduplicate aliases so one legacy column contributes once.
+- `fixtures/shopify-product-image-sharing-links.csv` covers Google Drive and Dropbox preview-link patterns plus direct-download/CDN URLs; unit and authenticated E2E checks confirm the advisory, direct-link exclusions, value preservation, and no requests to the supplied image hosts.
 - `fixtures/shopify-product-conflicting-option-linkedto-headers.csv` combines the current `Option1 LinkedTo` guide spelling with the `Option1 Linked To` downloadable-template spelling; the profile warns about undocumented precedence and preserves both values.
 - `fixtures/shopify-product-inventory-dependencies.csv` covers tracked and untracked rows, numeric and invalid quantities, policy values, custom versus built-in fulfillment services, a valid slug-style custom service, a service value with spaces and punctuation, and a tracker value outside Shopify's documented examples.
 - `fixtures/shopify-product-duplicate-variant-options.csv` includes one repeated option tuple under the same handle and the same tuple under another handle; only the same-product duplicate is diagnosed.

@@ -1,0 +1,8 @@
+Title,URL handle,Product image URL,Variant image URL
+Google Drive file preview,google-drive,https://drive.google.com/file/d/FILE123/view?usp=sharing,
+Google Drive open preview,google-open,https://drive.google.com/open?id=FILE456,
+Dropbox shared preview,dropbox-preview,https://www.dropbox.com/s/FILE789/product.jpg?dl=0,
+Dropbox shared preview path,dropbox-scl,https://www.dropbox.com/scl/fi/FILE012/product.jpg?rlkey=abc&dl=0,
+Google Drive download,direct-drive,,https://drive.google.com/uc?export=download&id=FILE345
+Dropbox raw image,dropbox-raw,https://www.dropbox.com/scl/fi/FILE678/product.jpg?raw=1,
+CDN image,direct-cdn,https://cdn.example.test/product.jpg,

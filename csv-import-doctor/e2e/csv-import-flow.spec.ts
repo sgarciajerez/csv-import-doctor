@@ -688,6 +688,20 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   expect(requestUrls.join('\n')).not.toContain(privateImageUrlMarker);
   expect(requestBodies.join('\n')).not.toContain(privateImageUrlMarker);
 
+  const imageSharingLinks = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-image-sharing-links.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'image-sharing-links.csv',
+    mimeType: 'text/csv',
+    buffer: imageSharingLinks,
+  });
+  const previewLinkWarning = 'This image URL looks like a Google Drive or Dropbox sharing page, not a direct image file URL.';
+  await expect(appBody).toContainText(previewLinkWarning);
+  await expect(appBody.getByText(previewLinkWarning, { exact: false }).first()).toBeVisible();
+  for (const imageUrlMarker of ['FILE123', 'FILE456', 'FILE789', 'FILE012', 'FILE345', 'FILE678']) {
+    expect(requestUrls.join('\n')).not.toContain(imageUrlMarker);
+    expect(requestBodies.join('\n')).not.toContain(imageUrlMarker);
+  }
+
   await app.locator('input[type="file"]').setInputFiles({
     name: 'thumbnail-suffix.csv',
     mimeType: 'text/csv',

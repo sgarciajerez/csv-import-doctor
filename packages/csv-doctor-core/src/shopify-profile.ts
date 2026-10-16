@@ -1,8 +1,9 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.61';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.62';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
+const PRODUCT_MEDIA_SOURCE = 'https://help.shopify.com/en/manual/products/product-media/add-media';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
 const B2B_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/b2b/catalogs/creating-catalogs';
@@ -62,6 +63,7 @@ const RECOMMENDATION_RULES = new Set([
   'collection-name-exceeds-limit',
   'product-image-count-exceeds-limit',
   'image-url-not-public-https',
+  'image-url-likely-preview-link',
   'image-filename-uses-thumbnail-suffix',
   'invalid-option-linkedto-format',
   'duplicate-product-handle',
@@ -116,6 +118,21 @@ function headerIndex(headers: string[], canonical: string): number | undefined {
 
 function unicodeCodePointLength(value: string): number {
   return [...value].length;
+}
+
+function isLikelyCloudPreviewImageUrl(url: URL): boolean {
+  const hostname = url.hostname.toLowerCase();
+  if (hostname === 'drive.google.com') {
+    return /^\/file\/d\/[^/]+(?:\/|$)/.test(url.pathname)
+      || url.pathname === '/open' && url.searchParams.has('id');
+  }
+
+  if ((hostname === 'dropbox.com' || hostname.endsWith('.dropbox.com'))
+    && (/^\/s\/[^/]+(?:\/|$)/.test(url.pathname) || /^\/scl\/fi\/[^/]+(?:\/|$)/.test(url.pathname))) {
+    return url.searchParams.get('raw') !== '1' && url.searchParams.get('dl') !== '1';
+  }
+
+  return false;
 }
 
 function compareDecimalAmounts(left: string, right: string): number | undefined {
@@ -1150,6 +1167,22 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
           PRODUCT_CSV_SOURCE,
         ));
         continue;
+      }
+
+      try {
+        if (isLikelyCloudPreviewImageUrl(new URL(imageUrl))) {
+          issues.push(makeIssue(
+            'image-url-likely-preview-link',
+            'warning',
+            'This image URL looks like a Google Drive or Dropbox sharing page, not a direct image file URL.',
+            visibleRow,
+            csv.headers[imageUrlIndex],
+            'Shopify explains that cloud-storage sharing links can open preview pages instead of the image file, which can prevent the image from being imported. Use a direct, publicly accessible image URL or verify the image after import. CSV Import Doctor checks only the URL pattern and does not request or modify it.',
+            PRODUCT_MEDIA_SOURCE,
+          ));
+        }
+      } catch {
+        // Absolute URL validation above already handles invalid URLs.
       }
 
       if (imageIndices.includes(imageUrlIndex)) {
