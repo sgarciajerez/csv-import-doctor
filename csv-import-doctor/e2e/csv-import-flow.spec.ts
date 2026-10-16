@@ -199,6 +199,14 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(app.getByText('2 filas', { exact: true })).toBeVisible();
   await expect(app.getByText('No se encontraron incidencias en las reglas actuales.')).toBeVisible();
 
+  const incompleteOptions = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-option-values-incomplete.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-option-values-incomplete.csv',
+    mimeType: 'text/csv',
+    buffer: incompleteOptions,
+  });
+  await expect(app.locator('body')).toContainText('Option1 name has no matching value on this product row.');
+
   await app.getByLabel('Tipo de importación').selectOption('update');
   await expect(app.getByText(/If you enable Shopify overwrite/)).toBeVisible();
 

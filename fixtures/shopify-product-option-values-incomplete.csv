@@ -1,0 +1,5 @@
+Title,URL handle,Option1 name,Option1 value,Option2 name,Option2 value,SKU
+Incomplete options,shirt,Size,,Color,,SKU-INCOMPLETE
+Default variant,default-variant,Title,Default Title,,SKU-DEFAULT
+Color shirt,color-shirt,Color,Red,, ,SKU-RED
+,color-shirt,,Blue,,,SKU-BLUE

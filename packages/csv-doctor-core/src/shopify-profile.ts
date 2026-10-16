@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.42';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.43';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -51,6 +51,7 @@ const RECOMMENDATION_RULES = new Set([
   'duplicate-product-handle',
   'product-handle-contains-undocumented-characters',
   'unsupported-product-option-column',
+  'product-option-name-missing-value',
 ]);
 const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'URL handle': ['Handle'],
@@ -621,6 +622,26 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       }
     } else if (handle) {
       currentProductImageGroup = `handle:${handle}`;
+    }
+
+    if (startsProduct) {
+      for (const optionNumber of [1, 2, 3]) {
+        const optionNameIndex = headerIndex(csv.headers, `Option${optionNumber} name`);
+        const optionValueIndex = headerIndex(csv.headers, `Option${optionNumber} value`);
+        const optionName = optionNameIndex === undefined ? '' : (row[optionNameIndex] ?? '').trim();
+        const optionValue = optionValueIndex === undefined ? '' : (row[optionValueIndex] ?? '').trim();
+        if (!optionName || optionValue || optionValueIndex === undefined) continue;
+
+        issues.push(makeIssue(
+          'product-option-name-missing-value',
+          'warning',
+          `Option${optionNumber} name has no matching value on this product row.`,
+          visibleRow,
+          csv.headers[optionValueIndex],
+          `Shopify documents option names and values as the data used to create product variants. Supply the intended Option${optionNumber} value. If this is a single default variant, verify Shopify's documented Default Title value. This is an advisory; the app preserves the cells and does not assert a specific import result.`,
+          PRODUCT_CSV_SOURCE,
+        ));
+      }
     }
 
     if (options.mode === 'create'
