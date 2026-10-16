@@ -119,6 +119,7 @@
 - `npm run build` - pass.
 - App `npm run typecheck` - pass.
 - App `npm run build` - pass.
+- App `npm run test:unit` - pass (4 compliance webhook handler tests).
 - App targeted ESLint for the route, Worker, and E2E spec - pass.
 - `npm run test:e2e -- --list` - pass (discovers one authenticated workflow).
 - `npm run test:e2e` - pass (1 authenticated embedded-admin flow; checks Shopify source, update overwrite notice, category badge, repair/undo/reapply, CSV bytes plus parse round-trip, report contents, ambiguous delimiter confirmation with repair/download blocking and normalized export, duplicate-variant diagnosis, inventory/fulfillment diagnostics, 15 MB Shopify import-size diagnosis, blank price, boolean, weight, image metadata, SEO limits, accessible analysis states and table headers, cancellation/Worker termination, malformed CSV and invalid UTF-8 rejection, near-20 MB local preview/export integrity, local-size and 100,001-row blocking, and network no-transmission).
@@ -143,5 +144,5 @@
 - [x] Perfil .28: advierte cuando Price, Compare-at price o Cost per item no contiene un importe numérico sin símbolo de moneda; incluye alias antiguos verificados para los encabezados de precio, conserva el valor y no impone precisión ni rangos no documentados. Unit test cubre números válidos, símbolos, códigos monetarios, texto y preservación.
 - E2E autenticado tras .28 - pass (1 flujo), con los tres avisos de formato monetario visibles en la app.
 
-- [ ] R10-05 (parcial): la interfaz enlaza una política de privacidad que describe el tratamiento real del CSV y los campos de sesión Prisma; el TOML configura los tres webhooks de cumplimiento y `shop/redact` elimina sesiones de forma idempotente. E2E autenticado confirma la divulgación, la página pública y el rechazo HTTP 401 de un HMAC inválido. Pendiente ejecutar entregas válidas firmadas y completar responsable/contacto, hosting, regiones y retención antes de distribuir.
+- [ ] R10-05 (parcial): la interfaz enlaza una política de privacidad que describe el tratamiento real del CSV y los campos de sesión Prisma; el TOML configura los tres webhooks de cumplimiento y `shop/redact` elimina sesiones de forma idempotente. 4 pruebas de unidad cubren borrado repetido por tienda, solicitudes de clientes sin acceso a sesiones y topics inesperados; E2E autenticado confirma la divulgación, la página pública y el rechazo HTTP 401 de un HMAC inválido. Pendiente ejecutar entregas válidas firmadas y completar responsable/contacto, hosting, regiones y retención antes de distribuir.
 - [x] R10-09: alineada la versión de la Admin API de Shopify en el servidor y en los webhooks a `2026-10`, la versión estable más reciente a 2026-10-16; se eliminó el TOML `2027-01` (release candidate) y la discrepancia con el servidor `2026-07`.

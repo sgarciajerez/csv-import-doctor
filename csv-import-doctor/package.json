@@ -18,6 +18,7 @@
     "graphql-codegen": "graphql-codegen",
     "vite": "vite",
     "typecheck": "react-router typegen && tsc --noEmit",
+    "test:unit": "node --test tests/privacy-compliance.test.mjs",
     "test:e2e": "playwright test",
     "auth:shopify": "node scripts/save-shopify-auth.mjs"
   },
