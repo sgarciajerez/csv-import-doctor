@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22.12.0
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -42,7 +42,7 @@ jobs:
           node-version: 22.12.0
           cache: npm
           cache-dependency-path: csv-import-doctor/package-lock.json
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:unit
