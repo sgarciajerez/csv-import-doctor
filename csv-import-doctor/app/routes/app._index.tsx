@@ -12,6 +12,7 @@ import {
 import type { AppliedRepair, CsvIssue, ImportMode, ParsedCsv, RepairProposal } from '../../../packages/csv-doctor-core/src/index.js';
 import { authenticate } from '../shopify.server';
 import { boundary } from '@shopify/shopify-app-react-router/server';
+import { releaseFileAfterAnalysis } from '../file-reference.mjs';
 
 const MAX_FILE_BYTES = 20_000_000;
 const MAX_VISIBLE_ITEMS = 100;
@@ -152,7 +153,7 @@ export default function Index() {
         setProposals(nextProposals);
         const hasAmbiguousDelimiter = parsed.issues.some((issue) => issue.ruleId === 'delimiter-ambiguous');
         setNeedsDelimiterConfirmation((current) => current || hasAmbiguousDelimiter);
-        if (!delimiter && !hasAmbiguousDelimiter) fileRef.current = null;
+        releaseFileAfterAnalysis(fileRef, hasAmbiguousDelimiter);
         setAnalysisAnnouncement(`Análisis completado: ${parsed.rows.length} filas y ${event.data.issues.length} incidencias.`);
       };
       worker.onerror = () => {

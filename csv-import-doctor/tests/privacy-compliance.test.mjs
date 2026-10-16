@@ -3,8 +3,20 @@ import { createHmac } from 'node:crypto';
 import test from 'node:test';
 import { ApiVersion, AppDistribution, shopifyApp } from '@shopify/shopify-app-react-router/server';
 import { handleComplianceWebhook, processComplianceWebhook } from '../app/privacy-compliance.mjs';
+import { releaseFileAfterAnalysis } from '../app/file-reference.mjs';
 
 const webhookTestSecret = 'fixture-only-webhook-secret';
+
+test('keeps the file only while delimiter confirmation is pending', () => {
+  const fileRef = { current: { name: 'ambiguous.csv' } };
+
+  releaseFileAfterAnalysis(fileRef, true);
+  assert.equal(fileRef.current.name, 'ambiguous.csv');
+
+  releaseFileAfterAnalysis(fileRef, false);
+  assert.equal(fileRef.current, null);
+});
+
 const webhookAuth = shopifyApp({
   apiKey: 'fixture-only-api-key',
   apiSecretKey: webhookTestSecret,
