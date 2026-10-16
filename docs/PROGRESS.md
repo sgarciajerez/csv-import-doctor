@@ -49,6 +49,8 @@
 
 ## Phase 5 - Requisitos 10/10 y precisiÃ³n del CSV Shopify
 
+- [x] Reconciliado el historial de autorrevisión: `APP_STORE_SELF_REVIEW.md` queda marcado como snapshot histórico anterior a la corrección de la entrada pública; `SHOPIFY_APP_STORE_REVIEW.md` es el informe vigente (20 likely passing, 1 likely failing, 9 needs review, 2026-10-16). Los recuentos no representan dos revisiones actuales distintas.
+
 - [x] Perfil `.63`: separa URLs `http://` de valores mal formados, relativos, con otros protocolos o con credenciales. Como la guía de medios recomienda HTTPS mientras la guía de errores menciona `http://`, HTTP se informa sin marcarlo como incompatible y se conserva sin cambios. Core: 103 pruebas, lint, typecheck y build pasan; E2E autenticado pasa (1 flujo, 40,5 s), incluido el nuevo mensaje informativo.
 - [x] Revisión estática local de privacidad registrada en `docs/PRIVACY_SECURITY_REVIEW.md`: no se encontraron endpoints de subida, APIs de red en el core ni logs de contenido CSV. Quedan fuera de esa evidencia el hosting y sus logs/respaldos; la política y la revisión de producción siguen pendientes.
 

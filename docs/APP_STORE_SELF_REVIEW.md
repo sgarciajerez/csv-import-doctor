@@ -1,5 +1,7 @@
 # Shopify App Store: autorrevisión local
 
+> Snapshot histórico superseded: se creó antes de limpiar la entrada pública y usa un subconjunto anterior del checklist. Para el estado vigente y el detalle de los criterios, consulta `docs/SHOPIFY_APP_STORE_REVIEW.md` (20 likely passing, 1 likely failing, 9 needs review; 2026-10-16).
+
 **Fecha:** 2026-10-16  
 **Fuente:** checklist vivo obtenido con `npm exec -- shopify doc fetch --url https://shopify.dev/docs/apps/launch/app-store-review/app-store-ai-self-review-requirements --output <archivo-temporal>`. La copia descargada se guardó fuera del repositorio.  
 **Alcance:** señales comprobables desde el código/configuración actual de `csv-import-doctor/`; no reemplaza la revisión de Shopify ni comprueba Partner Dashboard, infraestructura de producción o contenido de una ficha aún no creada.
