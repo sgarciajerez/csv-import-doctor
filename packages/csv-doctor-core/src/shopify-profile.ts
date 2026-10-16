@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.36';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.37';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -47,6 +47,7 @@ const RECOMMENDATION_RULES = new Set([
   'image-url-not-public-https',
   'image-filename-uses-thumbnail-suffix',
   'invalid-option-linkedto-format',
+  'duplicate-product-handle',
 ]);
 const LEGACY_HEADER_ALIASES: Record<string, string[]> = {
   'URL handle': ['Handle'],
@@ -537,10 +538,10 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     ));
   }
 
-  let previousHandle = '';
   let currentProductImageGroup = '';
   let anonymousProductCounter = 0;
   const firstVariantRowByCombination = new Map<string, number>();
+  const firstProductRowByHandle = new Map<string, number>();
   const productImageEntryCountByGroup = new Map<string, number>();
   const reportedProductImageLimits = new Set<string>();
   csv.rows.forEach((row, index) => {
@@ -567,13 +568,28 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       return columnIndex === undefined ? '' : (row[columnIndex] ?? '').trim();
     });
     const populatedPackedDimensionCount = packedDimensionValues.filter(Boolean).length;
-    const startsProduct = handle
-      ? handle !== previousHandle
-      : index === 0 || Boolean(title);
+    const startsProduct = Boolean(title)
+      || Boolean(handle && !firstProductRowByHandle.has(handle))
+      || (!handle && index === 0);
     if (startsProduct) {
       currentProductImageGroup = handle
         ? `handle:${handle}`
         : `unkeyed-product:${++anonymousProductCounter}`;
+      if (handle) {
+        const firstProductRow = firstProductRowByHandle.get(handle);
+        if (firstProductRow !== undefined) {
+          issues.push(makeIssue(
+            'duplicate-product-handle',
+            'warning',
+            `This product-start row repeats the handle from row ${firstProductRow}.`,
+            visibleRow,
+            csv.headers[handleIndex ?? 0],
+            'Shopify uses URL handle as the unique identifier for a product. A repeated handle on another row with a Title can indicate that two product records were assigned the same handle. Check that this is a continuation row and that each product has its intended unique handle; the app preserves the handle and does not assume Shopify will reject the file.',
+          ));
+        } else {
+          firstProductRowByHandle.set(handle, visibleRow);
+        }
+      }
     } else if (handle) {
       currentProductImageGroup = `handle:${handle}`;
     }
@@ -1118,7 +1134,6 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
         'Shopify product CSV instructions require the URL handle on rows that add additional images so the image is associated with the correct product.',
       ));
     }
-    if (handle) previousHandle = handle;
   });
 
   return issues;
