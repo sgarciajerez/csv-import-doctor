@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.66';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.67';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_MEDIA_SOURCE = 'https://help.shopify.com/en/manual/products/product-media/add-media';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
@@ -17,6 +17,7 @@ const MAX_CUSTOM_BARCODE_LENGTH = 255;
 const SHOPIFY_BARCODE_TYPES = new Set(['gtin', 'upc', 'ean', 'isbn', 'asin', 'custom']);
 const MAX_SHOPIFY_COLLECTION_LENGTH = 255;
 const MAX_PRODUCT_IMAGES = 250;
+const SHOPIFY_DAILY_VARIANT_CREATION_LIMIT = 10_000;
 const UNIT_PRICE_HEADERS = [
   'Unit price total measure',
   'Unit price total measure unit',
@@ -65,6 +66,7 @@ const RECOMMENDATION_RULES = new Set([
   'duplicate-barcode-value',
   'barcode-value-format-invalid',
   'duplicate-sku-value',
+  'large-create-csv-variant-limit',
   'collection-name-exceeds-limit',
   'product-image-count-exceeds-limit',
   'image-url-not-public-https',
@@ -990,6 +992,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const firstSkuRowByValue = new Map<string, number>();
   const productImageEntryCountByGroup = new Map<string, number>();
   const reportedProductImageLimits = new Set<string>();
+  let potentialCreatedVariantRows = 0;
   csv.rows.forEach((row, index) => {
     const visibleRow = index + 2;
     const rawHandle = handleIndex === undefined ? '' : (row[handleIndex] ?? '');
@@ -1045,6 +1048,9 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     const startsProduct = Boolean(title)
       || Boolean(handle && !firstProductRowByHandle.has(handle))
       || (!handle && index === 0);
+    if (startsProduct || hasOptionValue || (hasVariantData && !hasImageUrl)) {
+      potentialCreatedVariantRows += 1;
+    }
     if (unitPriceHeadersUnambiguous && populatedUnitPriceCount > 0 && populatedUnitPriceCount < UNIT_PRICE_HEADERS.length) {
       issues.push(makeIssue(
         'incomplete-unit-price-measurement',
@@ -1771,6 +1777,20 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       ));
     }
   });
+
+  if (options.mode === 'create'
+    && csv.headers.filter((header) => header === 'Title').length === 1
+    && potentialCreatedVariantRows > SHOPIFY_DAILY_VARIANT_CREATION_LIMIT) {
+    issues.push(makeIssue(
+      'large-create-csv-variant-limit',
+      'info',
+      `This create-mode CSV contains more than ${SHOPIFY_DAILY_VARIANT_CREATION_LIMIT.toLocaleString('en-US')} rows that may create variants.`,
+      undefined,
+      'Title',
+      `Shopify applies a limit of ${SHOPIFY_DAILY_VARIANT_CREATION_LIMIT.toLocaleString('en-US')} new variants per 24 hours only to stores that already have at least 500,000 variants and are not on Shopify Plus. This local row-based estimate cannot determine whether these rows create new variants, your store's plan or variant count, or variants already created in the current 24-hour window. Review the batch size and your store's Shopify import status; this notice does not predict that the import will fail and does not change the CSV.`,
+      'https://help.shopify.com/en/manual/products/import-export/common-import-issues',
+    ));
+  }
 
   return issues;
 }

@@ -1,6 +1,6 @@
 # Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.66`
+Profile version: `shopify-product-csv-2026-10-16.67`
 
 Template verification on 2026-10-16: downloaded Shopify's live `product_template.csv` linked from the product CSV guide. Its 61 published headers match the first 61 headers in `fixtures/shopify-product-current-headers.csv` exactly; the fixture then adds documented dynamic-market/metafield examples and the import-only `Collection` column. No header drift was found.
 
@@ -226,3 +226,5 @@ Version .64: warn when the same barcode value appears more than once within one 
 Version .65: warn when a recognized typed barcode value does not match Shopify's documented type-specific length and character set, or when a Custom barcode exceeds 255 characters. This advisory does not validate registry assignment or check digits and preserves the source value. Source: https://help.shopify.com/en/manual/products/details/product-details-page/.
 
 Version .66: emit an informational recommendation when a nonblank exact SKU repeats within one unambiguous current or legacy SKU column. Shopify recommends unique SKUs; this file-only check does not claim import rejection or inspect the store, and skips simultaneous current/legacy SKU columns. Source: https://help.shopify.com/en/manual/products/details/product-details-page/.
+
+Version .67: in create mode, show an informational advisory when a file with exactly one `Title` column contains more than 10,000 rows that may create variants. Count product-start rows and rows with option values or variant data, while excluding image-only continuations. This row-based estimate cannot establish whether Shopify will create new variants or inspect store size, plan, or prior uploads. Shopify applies its daily limit only to stores with at least 500,000 existing variants outside Plus. Source: https://help.shopify.com/en/manual/products/import-export/common-import-issues.
