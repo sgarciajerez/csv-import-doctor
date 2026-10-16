@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.52';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.53';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
@@ -493,22 +493,51 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     ));
   }
 
-  Object.entries(DOCUMENTED_HEADER_ALIASES).forEach(([currentHeader, aliases]) => {
-    const matchingHeaders = [currentHeader, ...aliases].filter((header) => indices.has(header));
-    if (matchingHeaders.length < 2) return;
-    const isLegacyAlias = Object.prototype.hasOwnProperty.call(LEGACY_HEADER_ALIASES, currentHeader);
+  const headerAliasConflicts = Object.entries(DOCUMENTED_HEADER_ALIASES)
+    .flatMap(([currentHeader, aliases]) => {
+      const matchingHeaders = [currentHeader, ...aliases].filter((header) => indices.has(header));
+      if (matchingHeaders.length < 2) return [];
+      const isLegacyAlias = Object.prototype.hasOwnProperty.call(LEGACY_HEADER_ALIASES, currentHeader);
+      return [{
+        matchingHeaders,
+        isLegacyAlias,
+        explanation: isLegacyAlias
+          ? `The profile recognizes these current and older header names as aliases for "${currentHeader}". Shopify documents backward compatibility with older templates, but does not specify how both columns are handled together. Confirm which column contains the intended data; both columns and their values are preserved.`
+          : `Shopify's current guide uses "${currentHeader}", while the downloadable product template uses "${aliases.join('" / "')}". Shopify does not document how both columns are handled together. Confirm which column contains the intended data; both columns and their values are preserved.`,
+        sourceUrl: isLegacyAlias
+          ? 'https://help.shopify.com/en/manual/products/import-export/common-import-issues'
+          : PRODUCT_CSV_SOURCE,
+      }];
+    });
+  const compareAtHeadersByMarket = new Map<string, string[]>();
+  csv.headers.forEach((header) => {
+    const match = /^(?:Compare At Price|Compare-at price) \/ (.+)$/.exec(header);
+    if (!match) return;
+    const marketName = match[1];
+    if (marketName === undefined) return;
+    const matchingHeaders = compareAtHeadersByMarket.get(marketName) ?? [];
+    matchingHeaders.push(header);
+    compareAtHeadersByMarket.set(marketName, matchingHeaders);
+  });
+  compareAtHeadersByMarket.forEach((matchingHeaders) => {
+    if (new Set(matchingHeaders.map((header) => header.startsWith('Compare At Price /'))).size < 2) return;
+    headerAliasConflicts.push({
+      matchingHeaders,
+      isLegacyAlias: false,
+      explanation: 'Shopify product CSV documentation uses both "Compare-at price / [Market]" and "Compare At Price / [Market]" for market compare-at prices. It does not specify how both columns for the same market are handled together. Confirm which column contains the intended data; both columns and their values are preserved.',
+      sourceUrl: 'https://help.shopify.com/uk/manual/products/import-export/using-csv',
+    });
+  });
+
+  headerAliasConflicts.forEach(({ matchingHeaders, explanation, sourceUrl }) => {
     issues.push(makeIssue(
       'conflicting-header-aliases',
       'warning',
       `This file contains multiple headers for the same Shopify field: ${matchingHeaders.join(' / ')}.`,
       1,
       matchingHeaders.join(' / '),
-      isLegacyAlias
-        ? `The profile recognizes these current and older header names as aliases for "${currentHeader}". Shopify documents backward compatibility with older templates, but does not specify how both columns are handled together. Confirm which column contains the intended data; both columns and their values are preserved.`
-        : `Shopify's current guide uses "${currentHeader}", while the downloadable product template uses "${aliases.join('" / "')}". Shopify does not document how both columns are handled together. Confirm which column contains the intended data; both columns and their values are preserved.`,
-      isLegacyAlias
-        ? 'https://help.shopify.com/en/manual/products/import-export/common-import-issues'
-        : PRODUCT_CSV_SOURCE,
+      explanation,
+      sourceUrl,
     ));
   });
 

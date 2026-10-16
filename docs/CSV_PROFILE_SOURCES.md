@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.52`
+Profile version: `shopify-product-csv-2026-10-16.53`
+
+Changes in `.53`: recognize `Compare At Price / [Market]` and `Compare-at price / [Market]` as documented spellings for market compare-at price columns. When both appear with the same exact market name, warn that Shopify does not document which one takes precedence and preserve both columns and values.
 
 Changes in `.52`: recognize the current guide's `OptionN LinkedTo` spelling and the downloadable template's exact `OptionN Linked To` spelling as alternate headers for the same option link. If both forms for an option appear, warn that Shopify does not document precedence and preserve both columns and values. Continue validating each nonblank value against the documented taxonomy-metafield prefix.
 
@@ -56,6 +58,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 
 - [Creating catalogs for markets](https://help.shopify.com/en/manual/markets/customizations/catalogs) — fixed compare-at pricing requires a fixed product price for the market; market catalog CSV fields also document omitting currency symbols.
 - [Using CSV files to import and export products](https://help.shopify.com/en/manual/products/import-export/using-csv) â€” product CSV columns, required fields, variant continuation rows, UTF-8/LF formatting, and related-column behavior.
+- [Localized product CSV guide](https://help.shopify.com/uk/manual/products/import-export/using-csv) — documents `Compare At Price / [Market]` in its market-column examples; the English guide and downloadable template use `Compare-at price / [Market]`. Shopify does not specify precedence when both spellings appear for one market.
 - [Shopify's downloadable product CSV template](https://help.shopify.com/cdn/shopifycloud/product-knowledge/production/csv/product_template.csv) — exact template header row checked 2026-10-16; the fixture preserves this header set and adds dynamic Markets/metafield headers documented on the guide page.
 - [Shopify Standard Product Taxonomy v2026-08](https://github.com/Shopify/product-taxonomy/releases/tag/v2026-08) â€” pinned English category IDs used for advisory membership checks; the downloadable source asset is `categories.en.json.gz`.
 - [Shopify product-taxonomy license](https://github.com/Shopify/product-taxonomy/blob/main/LICENSE) â€” MIT; its required notice is included in this repository.
@@ -112,7 +115,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - `fixtures/shopify-product-boolean-values.csv` covers valid and unexpected boolean spellings on product and variant fields; a test also covers the verified older `Published`, `Variant Requires Shipping`, and `Variant Taxable` headers.
 - `fixtures/shopify-product-weight-values.csv` covers blank and valid weight fields, decimal/unit-bearing gram values, unsupported display units, and continuation-row handling; the legacy `Variant Grams` header is covered in a focused test.
 - ixtures/shopify-product-image-metadata.csv covers image positions 1, 2, zero, and nonnumeric text, plus the 512-character boundary and a 513-character alt text across image rows.
-- Market exports can contain `Included / [Market]`, `Price / [Market]`, and `Compare At Price / [Market]`; Shopify exports only markets whose active catalog is not shared with another market. The app recognizes these dynamic headers and preserves their values without trying to validate catalog pricing.
+- Market exports can contain `Included / [Market]`, `Price / [Market]`, and compare-at headers spelled `Compare At Price / [Market]` or `Compare-at price / [Market]` in official Shopify product CSV documentation. Shopify exports only markets whose active catalog is not shared with another market. The app recognizes and preserves these dynamic headers. If both compare-at spellings occur for the same exact market name, it warns because Shopify does not specify precedence; it does not merge or overwrite either value.
 - Product metafields are supported in named forms such as `<name> (product.metafields.<namespace>.<key>)` and `NAME; (product.metafields.custom.KEY)`, or as `product.metafields.<namespace>.<key>`. The source page shows both named spellings; the app recognizes and preserves them but cannot validate values without the store's metafield definitions. Product references may require an existing referenced product; the app cannot verify that locally.
 - Variant metafields are not supported by product CSV. Recognizable `variant.metafields.*` headers receive a warning; values and header text remain unchanged. Unknown columns must remain unchanged unless a documented rule says otherwise.
 - Shopify accepts UTF-8 and recommends LF line endings.
@@ -157,7 +160,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 | `Barcodes` | Current product header; supports multiple typed barcodes | Preserve values; report an error only if legacy `Barcode` is also present |
 | `Status` | Current product header; when present it needs a value: `active`, `draft`, or `archived` | Validate product-start rows and allowed values |
 | `Gift card` | Gift cards cannot be created through product CSV import; existing gift card details can be edited in bulk | In create mode, error on product-start rows with `true`; do not flag update mode |
-| `Included / [Market]`, `Price / [Market]`, `Compare At Price / [Market]` | Dynamic international market columns; market names replace `[Market]` | Recognize current market header patterns, preserve values, and exclude them from inventory-location heuristics |
+| `Included / [Market]`, `Price / [Market]`, `Compare At Price / [Market]`, `Compare-at price / [Market]` | Dynamic international market columns; official product CSV documentation shows both compare-at spellings | Recognize both market compare-at spellings; if both occur for the same market, warn that precedence is undocumented and preserve both values |
 | Google Shopping column names listed in Shopify's current guide and exact `Google Shopping / ...` spellings from the downloadable template | The guide enumerates supported Google Shopping metafields and the template contains exact headings with some capitalization variants | Recognize the documented/template allowlist; suggest a possible typo without auto-renaming when a header is one edit away; report other names as informational unknown headers and preserve all data |
 | `<name> (product.metafields.<namespace>.<key>)`, `NAME; (product.metafields.custom.KEY)`, `product.metafields.<namespace>.<key>` | Supported product metafield header forms shown in the current guide | Recognize and preserve; do not guess the field type or validate its values without the store definition |
 | `variant.metafields.*` or `<name> (variant.metafields.*)` | Variant metafields are not supported in product CSV | Preserve and show a sourced warning; Shopify directs merchants to the variant bulk editor |
