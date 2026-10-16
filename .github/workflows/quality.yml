@@ -51,3 +51,5 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:unit
       - run: npm run build
+      - run: npx prisma migrate deploy
+      - run: npm run test:integration:webhook
