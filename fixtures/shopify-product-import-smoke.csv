@@ -1,0 +1,3 @@
+Title,URL handle,Option1 name,Option1 value,SKU,Price,Status,Published on online store
+CSV Import Doctor QA Fixture,csv-import-doctor-qa-20261016-variant-smoke,Size,Small,CID-QA-SMALL,9.99,draft,false
+,csv-import-doctor-qa-20261016-variant-smoke,,Medium,CID-QA-MEDIUM,10.99,,

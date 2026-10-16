@@ -72,7 +72,7 @@
 - [x] Cubierta con fixtures sinteticos la heuristica de productos heredados que combinan cabeceras antiguas, filas de continuacion, Markets y metafields de producto; las columnas se preservan y no se clasifican como inventario.
 - [x] Reconocidos `Included / [Market]`, `Price / [Market]` y `Compare At Price / [Market]`; se advierte que los metafields de variante no son compatibles con el CSV de productos.
 - [x] Ampliar diagnósticos trazables, mantener catálogo y pruebas de contrato, y validar la app embebida con fixtures sintéticos en la tienda de desarrollo.
-- [ ] Contrastar importaciones reales de fixtures sintéticos en la tienda de desarrollo para documentar los resultados que dependen del importador Shopify; la app sigue siendo de diagnóstico y no inicia importaciones.
+- [ ] Contrastar el fixture `fixtures/shopify-product-import-smoke.csv` con el importador real de la tienda de desarrollo: debe crear un producto en borrador con dos variantes `Size`, una fila de producto y una de continuación. Verificar el resultado en Admin y eliminar el producto de prueba al terminar. No iniciar la importación hasta tener una decisión explícita del propietario; la app no inicia importaciones.
 
 - [x] Definidos como obligatorios la categoria, la explicacion y el nivel de seguridad; la interfaz distingue parser, perfil Shopify y recomendaciones.
 - [x] Creado `docs/DIAGNOSTIC_RULES.md` como catalogo de reglas; una prueba comprueba que cada regla activa del perfil tenga entrada.
