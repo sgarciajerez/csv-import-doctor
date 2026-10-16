@@ -1,6 +1,6 @@
 # Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.63`
+Profile version: `shopify-product-csv-2026-10-16.65`
 
 Template verification on 2026-10-16: downloaded Shopify's live `product_template.csv` linked from the product CSV guide. Its 61 published headers match the first 61 headers in `fixtures/shopify-product-current-headers.csv` exactly; the fixture then adds documented dynamic-market/metafield examples and the import-only `Collection` column. No header drift was found.
 
@@ -221,3 +221,5 @@ Every issue produced by the product profile includes the profile version and the
 Recheck the official source before changing profile rules because Shopify's CSV format can change.
 
 Version .64: warn when the same barcode value appears more than once within one plural barcode cell, based on Shopify's documented uniqueness rule. Compare recognized barcode types independent of their type: prefix, honor escaped delimiters, and do not compare across CSV rows or alter values. Source: https://help.shopify.com/en/manual/products/details/product-details-page/.
+
+Version .65: warn when a recognized typed barcode value does not match Shopify's documented type-specific length and character set, or when a Custom barcode exceeds 255 characters. This advisory does not validate registry assignment or check digits and preserves the source value. Source: https://help.shopify.com/en/manual/products/details/product-details-page/.

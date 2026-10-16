@@ -662,6 +662,13 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(appBody).toContainText('This product or variant has 21 barcodes; Shopify allows a maximum of 20.');
 
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'invalid-barcode-format.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Title,URL handle,Barcodes\nBarcode format,barcode-format,"gtin:1234567; asin:NOT-VALID"', 'utf8'),
+  });
+  await expect(appBody).toContainText('One or more barcode values do not match the documented format for their type.');
+
   const longCollection = 'c'.repeat(256);
   await app.locator('input[type="file"]').setInputFiles({
     name: 'collection-over-limit.csv',

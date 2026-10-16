@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.64';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.65';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_MEDIA_SOURCE = 'https://help.shopify.com/en/manual/products/product-media/add-media';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
@@ -13,6 +13,7 @@ const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-l
 const MAX_SHOPIFY_PRODUCT_CSV_BYTES = 15_000_000;
 const MAX_SHOPIFY_PRODUCT_TAGS = 250;
 const MAX_SHOPIFY_BARCODES_PER_VARIANT = 20;
+const MAX_CUSTOM_BARCODE_LENGTH = 255;
 const SHOPIFY_BARCODE_TYPES = new Set(['gtin', 'upc', 'ean', 'isbn', 'asin', 'custom']);
 const MAX_SHOPIFY_COLLECTION_LENGTH = 255;
 const MAX_PRODUCT_IMAGES = 250;
@@ -62,6 +63,7 @@ const RECOMMENDATION_RULES = new Set([
   'product-tag-count-exceeds-limit',
   'variant-barcode-count-exceeds-limit',
   'duplicate-barcode-value',
+  'barcode-value-format-invalid',
   'collection-name-exceeds-limit',
   'product-image-count-exceeds-limit',
   'image-url-not-public-https',
@@ -221,6 +223,27 @@ function comparableBarcodeValue(entry: { value: string; firstUnescapedColon?: nu
   const type = entry.value.slice(0, separator).trim().toLowerCase();
   if (!SHOPIFY_BARCODE_TYPES.has(type)) return value;
   return entry.value.slice(separator + 1).trim();
+}
+
+function barcodeTypeAndValue(entry: { value: string; firstUnescapedColon?: number }): { type: string; value: string } {
+  if (entry.firstUnescapedColon === undefined) return { type: 'custom', value: entry.value };
+
+  const separator = entry.firstUnescapedColon;
+  const type = entry.value.slice(0, separator).toLowerCase();
+  if (!SHOPIFY_BARCODE_TYPES.has(type)) return { type: 'custom', value: entry.value };
+  return { type, value: entry.value.slice(separator + 1) };
+}
+
+function hasInvalidBarcodeFormat(entry: { value: string; firstUnescapedColon?: number }): boolean {
+  const { type, value } = barcodeTypeAndValue(entry);
+  switch (type) {
+    case 'gtin': return !/^(?:\d{8}|\d{12}|\d{13}|\d{14})$/u.test(value);
+    case 'upc': return !/^(?:\d{8}|\d{12})$/u.test(value);
+    case 'ean': return !/^(?:\d{8}|\d{13})$/u.test(value);
+    case 'isbn': return !/^(?:[0-9X]{10}|\d{13})$/iu.test(value);
+    case 'asin': return !/^[a-z\d]{10}$/iu.test(value);
+    default: return [...value].length > MAX_CUSTOM_BARCODE_LENGTH;
+  }
 }
 
 function findDuplicateBarcodeValue(entries: Array<{ value: string; firstUnescapedColon?: number }>): string | undefined {
@@ -1275,6 +1298,17 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
             visibleRow,
             csv.headers[columnIndex],
             'Shopify says the same barcode value cannot be used twice on the same product or variant. Values are compared within this cell, ignoring a documented type prefix such as `gtin:` or `upc:`; the app preserves the original text and does not infer cross-row identity.',
+            'https://help.shopify.com/en/manual/products/details/product-details-page/',
+          ));
+        }
+        if (barcodeEntries.some(hasInvalidBarcodeFormat)) {
+          issues.push(makeIssue(
+            'barcode-value-format-invalid',
+            'warning',
+            'One or more barcode values do not match the documented format for their type.',
+            visibleRow,
+            csv.headers[columnIndex],
+            'Shopify documents GTIN as 8, 12, 13, or 14 digits; UPC as 8 or 12 digits; EAN as 8 or 13 digits; ISBN as 10 or 13 characters (with X allowed); ASIN as 10 letters or digits; and Custom values up to 255 characters. Review the type and value. The app preserves the original cell and does not check registry validity or check digits.',
             'https://help.shopify.com/en/manual/products/details/product-details-page/',
           ));
         }
