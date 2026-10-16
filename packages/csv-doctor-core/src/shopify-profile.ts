@@ -1,10 +1,11 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.58';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.59';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const MARKET_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/markets/customizations/catalogs';
+const B2B_CATALOGS_SOURCE = 'https://help.shopify.com/en/manual/b2b/catalogs/creating-catalogs';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
 const MAX_SHOPIFY_PRODUCT_CSV_BYTES = 15_000_000;
 const MAX_SHOPIFY_PRODUCT_TAGS = 250;
@@ -383,18 +384,26 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   ];
   const isInventoryCsv = normalizedHeaders.has('location')
     && inventorySpecificColumns.some((header) => normalizedHeaders.has(header));
+  const hasCatalogPricingOrPublicationHeader = ['fixed price', 'compare at', 'published']
+    .some((header) => normalizedHeaders.has(header));
+  const hasCatalogQuantityOrVolumePricingHeader = [
+    'quantity increment',
+    'minimum order quantity',
+    'maximum order quantity',
+  ].some((header) => normalizedHeaders.has(header))
+    || csv.headers.some((header) => /^(quantity|price) break (?:[1-9]|10)$/.test(header.trim().toLowerCase()));
   const isMarketCatalogCsv = normalizedHeaders.has('catalog title')
-    && ['fixed price', 'compare at', 'published'].some((header) => normalizedHeaders.has(header));
+    && (hasCatalogPricingOrPublicationHeader || hasCatalogQuantityOrVolumePricingHeader);
 
   if (isMarketCatalogCsv) {
     issues.push(makeIssue(
       'market-catalog-csv-format-detected',
       'warning',
-      'This looks like a Shopify Markets catalog CSV; product checks were skipped.',
+      'This looks like a Shopify Markets or B2B catalog CSV; product checks were skipped.',
       1,
       'Catalog Title',
-      'Shopify Markets catalog CSVs use a separate format for catalog pricing and product availability. Analyze this file with a catalog-specific profile when available.',
-      MARKET_CATALOGS_SOURCE,
+      'Shopify Markets and B2B catalog CSVs use separate formats for catalog pricing, product availability, quantity rules, or volume pricing. Analyze this file with a catalog-specific profile when available.',
+      hasCatalogQuantityOrVolumePricingHeader ? B2B_CATALOGS_SOURCE : MARKET_CATALOGS_SOURCE,
     ));
     return issues;
   }

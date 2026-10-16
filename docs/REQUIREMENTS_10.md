@@ -36,7 +36,7 @@ Antes de cerrar cualquier requisito, registrar evidencia verificable en `docs/PR
 - Advertir si el nombre de archivo en `Product image URL` o `Image Src` termina en los sufijos que Shopify documenta como no válidos (`_thumb`, `_small`, `_medium`), ignorando query strings y sin modificar la URL.
 - Preservar columnas desconocidas y valores. Distinguir entre columna desconocida, columna con grafía incorrecta y formato no soportado.
 - Detectar CSV de inventario u otros tipos y explicar que usan un esquema distinto; no aplicarles silenciosamente el perfil de productos.
-- Detectar el CSV de catálogos de Shopify Markets por sus encabezados distintivos y saltar las validaciones de productos; documentar que la app solo identifica este formato, no valida ni repara todavía su esquema de catálogo.
+- Detectar los CSV de catálogos de Shopify Markets y B2B por sus encabezados distintivos, incluidos campos de precio/publicación y reglas de cantidad/precios por volumen, y saltar las validaciones de productos; documentar que la app solo identifica estos formatos, no valida ni repara todavía su esquema de catálogo.
 - Tratar delimitadores según el destino Shopify. Shopify documenta comas para el CSV de productos; si se acepta otra entrada para analizarla, indicar claramente cómo se generará un archivo compatible.
 - Diferenciar el máximo de importación documentado por Shopify (15 MB para CSV de productos) del límite local de análisis del navegador; diagnosticar archivos analizables que superan el límite de importación.
 - Documentar qué ocurre con columnas de variantes, imágenes, colección, metafields y mercados. Solo añadir validaciones específicas cuando exista evidencia suficiente; aceptar y preservar datos que la app todavía no interpreta.

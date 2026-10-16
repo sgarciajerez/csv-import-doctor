@@ -1,6 +1,8 @@
 ﻿# Shopify product CSV profile sources
 
-Profile version: `shopify-product-csv-2026-10-16.58`
+Profile version: `shopify-product-csv-2026-10-16.59`
+
+Changes in `.59`: extend catalog-file detection to Shopify's documented B2B quantity-rule and volume-pricing CSV columns (`Quantity Increment`, `Minimum Order Quantity`, `Maximum Order Quantity`, and numbered `Quantity Break` / `Price Break` headers). This catches quantity-rule exports that have no `Fixed Price`, `Compare At`, or `Published` column. It remains format identification only; product checks are skipped and no catalog-specific values are validated or changed.
 
 Changes in `.58`: detect Markets catalog CSVs using the required `Catalog Title` header together with a catalog-specific `Fixed Price`, `Compare At`, or `Published` header. Emit a file-level recommendation and skip product checks, because Shopify documents a separate catalog CSV schema. Product files that merely share `Handle` and `SKU` are not classified as catalogs; all catalog data is preserved.
 
@@ -67,6 +69,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 ## Official sources checked 2026-10-16
 
 - [Creating catalogs for markets](https://help.shopify.com/en/manual/markets/customizations/catalogs) — fixed compare-at pricing requires a fixed product price for the market; market catalog CSV fields also document omitting currency symbols.
+- [Customizing B2B pricing using catalogs](https://help.shopify.com/en/manual/b2b/catalogs/creating-catalogs) — documents catalog CSV identifiers, quantity rules, and numbered volume-pricing break fields.
 - [Setting sale prices](https://help.shopify.com/en/manual/products/details/product-pricing/sale-pricing) — Shopify displays a sale price only when the compare-at price is higher than the product price.
 - [Displaying unit prices for products](https://help.shopify.com/en/manual/products/details/product-pricing/unit-pricing) — unit price calculations use the product price plus total and base measurements; bulk updates through product CSV use four measurement columns.
 - [Using CSV files to import and export products](https://help.shopify.com/en/manual/products/import-export/using-csv) â€” product CSV columns, required fields, variant continuation rows, UTF-8/LF formatting, and related-column behavior.
@@ -92,6 +95,7 @@ Changes in `.19`: warn when product SEO title exceeds 70 characters or SEO descr
 - For updates, `URL handle` and `Title` are required. Variant data can depend on `Option1 name` and `Option1 value`.
 - Shopify says a fixed `Compare At Price / [Market]` requires a fixed `Price / [Market]`. The profile warns when the compare-at value is supplied while its corresponding market price is blank or absent, preserves both values, and links to the Markets catalog guidance. It does not infer currency values or convert prices.
 - Shopify Markets catalogs use a distinct CSV schema with `Catalog Title`, `SKU`, `Handle`, `Fixed Price`, `Compare At`, and `Published`. A catalog-type recommendation is emitted when the required title and at least one catalog-specific field are present; product validation is skipped to avoid misleading product diagnostics. This is format identification only, not catalog-specific validation.
+- Shopify's B2B catalog CSV can also include `Quantity Increment`, `Minimum Order Quantity`, `Maximum Order Quantity`, and numbered quantity/price breaks. These catalog-specific headers also trigger catalog-format detection when `Catalog Title` is present, even when fixed pricing or publication fields are absent; the B2B rules themselves are not validated.
 - Shopify says a compare-at price must be higher than its corresponding price to display a sale price. The profile compares valid numeric base and fixed-market price pairs row by row, including verified legacy base headers; it advises when the compare-at value is equal or lower. It skips blank, malformed, or ambiguous pairs, does not classify the CSV as unimportable, and preserves both amounts.
 - For exact fixed-market `Price / [Market]` and compare-at headers, nonnumeric text or currency symbols receive the existing monetary-format recommendation. This applies Shopify's general product CSV instruction about price values to dynamic fixed-market money fields; the app describes this as a review recommendation because Shopify does not separately enumerate their accepted numeric syntax.
 - Shopify calculates unit pricing from the product price and total/base measurement fields, and instructs merchants to include all four measurement columns when updating unit pricing through CSV. The profile recommends reviewing a partially populated quartet, but does not enforce numeric ranges or compatibility between units.

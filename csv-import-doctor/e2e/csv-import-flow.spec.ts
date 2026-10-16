@@ -566,7 +566,19 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     mimeType: 'text/csv',
     buffer: marketCatalog,
   });
-  await expect(appBody).toContainText('This looks like a Shopify Markets catalog CSV; product checks were skipped.');
+  await expect(appBody).toContainText('This looks like a Shopify Markets or B2B catalog CSV; product checks were skipped.');
+
+  const b2bCatalogQuantityRules = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-b2b-catalog-quantity-rules.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-b2b-catalog-quantity-rules.csv',
+    mimeType: 'text/csv',
+    buffer: b2bCatalogQuantityRules,
+  });
+  await expect(appBody).toContainText('This looks like a Shopify Markets or B2B catalog CSV; product checks were skipped.');
+  await expect(app.getByRole('link', { name: /Fuente de Shopify/ })).toHaveAttribute(
+    'href',
+    'https://help.shopify.com/en/manual/b2b/catalogs/creating-catalogs',
+  );
 
   const excessiveTags = Array.from({ length: 251 }, (_, index) => `tag-${index}`).join(',');
   await app.locator('input[type="file"]').setInputFiles({

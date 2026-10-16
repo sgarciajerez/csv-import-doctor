@@ -2,7 +2,7 @@
 
 Initial core coverage:
 
-- Detect Shopify Markets catalog CSVs using `Catalog Title` plus `Fixed Price`, `Compare At`, or `Published`; skip product-profile checks in create and update, preserve headers/cells on round-trip, and do not false-positive product files containing only shared `Handle` and `SKU` fields. Authenticated E2E checks the catalog warning is visible.
+- Detect Shopify Markets and B2B catalog CSVs using `Catalog Title` plus fixed-price/publication or quantity-rule/volume-pricing headers; skip product-profile checks in create and update, preserve headers/cells on round-trip, and do not false-positive product files containing only shared `Handle` and `SKU` fields. Authenticated E2E checks both catalog warnings and the B2B source link.
 - CI on pushes and pull requests to `develop` and `master` installs the root core workspace and the Shopify app from their lockfiles, then runs lint, typecheck, unit tests, and production build for both; authenticated E2E remains a separately configured gate.
 - When a machine cannot resolve Shopify CLI's temporary tunnel hostname, authenticated E2E can use `PLAYWRIGHT_HOST_RESOLVER_RULES` for Chrome's host resolver and `PLAYWRIGHT_APP_SERVER_URL` for direct local webhook requests; do not commit tunnel-specific hostnames or IP addresses.
 - Diagnostic contract over every CSV fixture in both create and update modes: require stable IDs, complete issue metadata, valid row/column references, source and profile version on Shopify findings, and a catalog entry for every emitted rule; map Papa Parse parser codes to the documented parser rule template.
