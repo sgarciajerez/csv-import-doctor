@@ -1129,7 +1129,7 @@ describe('validateShopifyProductCsv', () => {
       expect(issue).toMatchObject({
         severity: 'warning',
         category: 'recommendation',
-        sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
+        sourceUrl: 'https://help.shopify.com/en/manual/products/product-media/add-media',
         profileVersion: 'shopify-product-csv-2026-10-16.62',
       });
       expect(issue.explanation).toContain('does not request the URL');

@@ -1164,7 +1164,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
           visibleRow,
           csv.headers[imageUrlIndex],
           'Shopify requires publicly accessible image URLs over HTTPS. This value is not an absolute HTTPS URL without embedded credentials. CSV Import Doctor does not request the URL, so it cannot confirm that the image exists or is publicly accessible. The original value is preserved.',
-          PRODUCT_CSV_SOURCE,
+          PRODUCT_MEDIA_SOURCE,
         ));
         continue;
       }
