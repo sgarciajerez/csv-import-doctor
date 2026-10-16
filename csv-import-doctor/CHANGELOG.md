@@ -1,5 +1,8 @@
 # @shopify/shopify-app-template-react-router
 
+## 2026.10.16
+- Raise the Node.js minimum to 22.20 because locked development dependencies require Node 22.13, 22.15, and 22.20; align GitHub Actions and the app engine declaration with the lockfile.
+
 ## 2026.09.23
 - Update `@shopify/shopify-app-react-router` to v3 and `@shopify/shopify-app-session-storage-prisma` to v11. This picks up the new `polarisUrl` option on `AppProvider` and `shopifyApp` for choosing which polaris.js build to load.
 - Remove the `embedded` prop from `AppProvider` in `app/routes/app.tsx`, which v2 removed.
