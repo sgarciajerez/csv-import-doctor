@@ -572,10 +572,26 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     const windowWithTestHooks = body.ownerDocument.defaultView as (Window & { __terminatedWorkers?: number });
     return windowWithTestHooks.__terminatedWorkers;
   })).toBe(1);
+
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'unmount-analysis.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Title,Vendor\nMug,Example', 'utf8'),
+  });
+  await expect(analysisStatus).toHaveText('Analizando el archivo localmente.');
+  await app.getByRole('link', { name: 'Guía rápida de uso' }).click();
+  await expect.poll(() => appFrame.url()).toContain('/guide');
+  expect(await app.locator('body').evaluate((body) => {
+    const windowWithTestHooks = body.ownerDocument.defaultView as (Window & { __terminatedWorkers?: number });
+    return windowWithTestHooks.__terminatedWorkers;
+  })).toBe(2);
+
   await app.locator('body').evaluate((body) => {
     const windowWithTestHooks = body.ownerDocument.defaultView as (Window & { __realWorker?: typeof Worker });
     if (windowWithTestHooks.__realWorker) body.ownerDocument.defaultView!.Worker = windowWithTestHooks.__realWorker;
   });
+  await app.getByRole('button', { name: 'Volver al analizador' }).click();
+  await expect.poll(() => appFrame.url()).toContain('/app');
 
   await app.locator('input[type="file"]').setInputFiles({
     name: 'malformed.csv',
