@@ -178,6 +178,18 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   });
   await expect(app.locator('body')).toContainText('Shopify supports up to three product options; "Option4 name" is outside that limit.');
 
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-legacy-option-casing.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(
+      'Title,URL handle,Option1 Name,Option1 Value,Option4 Name,Option4 Value,Option4 LINKEDTO\nShirt,shirt,Size,Small,Print,Striped,product.metafields.shopify.color',
+    ),
+  });
+  await expect(app.locator('body')).toContainText('Shopify supports up to three product options; "Option4 Name" is outside that limit.');
+  await expect(app.locator('body')).toContainText('Shopify supports up to three product options; "Option4 Value" is outside that limit.');
+  await expect(app.locator('body')).toContainText('Shopify supports up to three product options; "Option4 LINKEDTO" is outside that limit.');
+  await expect(app.locator('body')).not.toContainText('This header may be a typo for "Option3 Name".');
+
   const inventoryDependencies = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-inventory-dependencies.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-inventory-dependencies.csv',
