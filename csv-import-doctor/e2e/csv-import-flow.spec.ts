@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 import { parseCsv } from '../../packages/csv-doctor-core/src/index.js';
 
 test('analyzes, filters, repairs, and downloads locally without sending CSV data', async ({ page }) => {
+  test.setTimeout(120_000);
   test.skip(!process.env.PLAYWRIGHT_APP_URL || !process.env.PLAYWRIGHT_STORAGE_STATE,
     'Set PLAYWRIGHT_APP_URL and PLAYWRIGHT_STORAGE_STATE from the authenticated Shopify dev preview.');
 
@@ -20,11 +21,11 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   if (await loginHeading.isVisible().catch(() => false)) {
     throw new Error('Shopify redirected to its sign-in page. Finish Shopify login in the Playwright browser, close it to save storage state, then rerun this test.');
   }
-  const app = page.frameLocator('iframe').first();
-  await expect(app.locator('s-section').first()).toBeVisible();
-
+  await expect.poll(() => page.frames().some((frame) => frame.url().includes('embedded=1'))).toBe(true);
   const appFrame = page.frames().find((frame) => frame.url().includes('embedded=1'));
   if (!appFrame) throw new Error('Shopify did not load the embedded app frame.');
+  const app = page.frameLocator('iframe[src*="embedded=1"]');
+  await expect(app.locator('s-section').first()).toBeVisible();
   await appFrame.waitForLoadState('networkidle');
 
   const complianceEndpoint = new URL('/webhooks/compliance', appFrame.url()).toString();
@@ -76,14 +77,15 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await page.keyboard.press('Enter');
   await expect(importMode).toHaveValue('create');
 
-  await page.setViewportSize({ width: 390, height: 844 });
   const currentHeaders = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-current-headers.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'shopify-product-current-headers.csv',
     mimeType: 'text/csv',
     buffer: currentHeaders,
   });
+  await expect(app.getByRole('status').filter({ hasText: 'Análisis completado:' })).toBeVisible();
   await expect(app.getByRole('table')).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
   const narrowLayout = await appFrame.evaluate(() => {
     const table = document.querySelector('table');
     const tableWrapper = table?.parentElement;
@@ -393,6 +395,13 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     buffer: Buffer.from(`Title,URL handle,Tags\nTag test,tag-test,"${excessiveTags}"`, 'utf8'),
   });
   await expect(appBody).toContainText('This product has 251 tags; Shopify allows a maximum of 250.');
+
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'tag-symbols.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Title,URL handle,Tags\nTag test,tag-test,summer_sale', 'utf8'),
+  });
+  await expect(appBody).toContainText('Shopify recommends using letters, numbers, and hyphens in product tags.');
 
   const excessiveBarcodes = Array.from({ length: 21 }, (_, index) => `code-${index}`).join(';');
   await app.locator('input[type="file"]').setInputFiles({

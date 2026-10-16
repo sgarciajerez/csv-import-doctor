@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.41';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.42';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
 const INVENTORY_CSV_SOURCE = 'https://help.shopify.com/en/manual/inventory-and-locations/setup/inventory-csv';
@@ -27,6 +27,7 @@ const RECOMMENDATION_RULES = new Set([
   'inventory-quantity-without-tracker',
   'inventory-quantity-single-location-only',
   'product-tags-contain-accented-characters',
+  'product-tags-contain-symbols',
   'unrecognized-shopify-product-category-id',
   'blank-price-may-fail-import',
   'invalid-product-money-format',
@@ -90,6 +91,10 @@ function unicodeCodePointLength(value: string): number {
 
 function containsAccentedLatinCharacter(value: string): boolean {
   return /\p{Script=Latin}\p{M}/u.test(value.normalize('NFD'));
+}
+
+function containsDiscouragedTagSymbol(value: string): boolean {
+  return [...value].some((character) => character !== '-' && /[\p{P}\p{S}]/u.test(character));
 }
 
 function countBarcodeEntries(value: string): number {
@@ -845,6 +850,18 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
             visibleRow,
             csv.headers[tagsIndex],
             'Shopify recommends avoiding accented characters in tags, but does not document an import failure for them. Review whether the recommendation fits this catalog; the app preserves the original tags and does not propose a translation or removal.',
+            PRODUCT_CSV_SOURCE,
+          ));
+        }
+        const containsSymbol = tagsValue.split(',').some((tag) => containsDiscouragedTagSymbol(tag));
+        if (containsSymbol) {
+          issues.push(makeIssue(
+            'product-tags-contain-symbols',
+            'info',
+            'Shopify recommends using letters, numbers, and hyphens in product tags.',
+            visibleRow,
+            csv.headers[tagsIndex],
+            'Shopify recommends using letters, numbers, and hyphens in tags and avoiding symbols. This tag contains punctuation or a symbol other than a hyphen; Shopify does not document that it will fail to import. Review the tag manually. The app preserves the original value and does not propose a change.',
             PRODUCT_CSV_SOURCE,
           ));
         }

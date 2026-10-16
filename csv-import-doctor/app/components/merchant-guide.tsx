@@ -1,4 +1,8 @@
+import { useNavigate } from 'react-router';
+
 export function MerchantGuide() {
+  const navigate = useNavigate();
+
   return (
     <s-page heading="Guía rápida">
       <s-section heading="Qué hace CSV Import Doctor">
@@ -67,7 +71,7 @@ export function MerchantGuide() {
       </s-section>
 
       <s-section>
-        <s-button variant="tertiary" onClick={() => window.history.back()}>Volver al analizador</s-button>
+        <s-button variant="tertiary" onClick={() => navigate('/app')}>Volver al analizador</s-button>
       </s-section>
     </s-page>
   );
