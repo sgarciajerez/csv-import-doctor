@@ -20,7 +20,7 @@ Initial core coverage:
 - Duplicate headers and rows with too few or too many cells.
 - Empty/malformed input and ambiguous delimiter selection, including blocked repairs/downloads until explicit user confirmation and reparse.
 - Browser workflow rejects invalid UTF-8 and blocks both downloads when the 100,000-row analysis limit is exceeded.
-- Measure near-20 MB local long-cell and 100,001-row workflows in E2E; assert that the 15 MB Shopify limit is diagnosed, the 20 MB local cap is enforced, and preview truncation does not alter exported CSV content.
+- Measure near-20 MB local long-cell and 100,001-row workflows in E2E; assert that the 15 MB Shopify limit is diagnosed, the 20 MB local cap is enforced, and preview truncation does not alter exported CSV content. During long analysis, verify that the visible and live-announced status advances through file reading, CSV structure analysis, profile checks, and repair preparation; cancellation must terminate the Worker.
 - Create/update profile requirements and product variant continuation rows.
 - Option integrity: on a product-start row, an explicit `OptionN name` with a blank matching value receives a sourced advisory in create and update mode; valid `Default Title` values and continuation rows with omitted option names stay clear, with all cells preserved.
 - In authenticated E2E, verify the import-mode control and file input are reachable by tab and the create/update selector changes via keyboard; keep the full manual keyboard, screen-reader, contrast, and responsive review as a separate requirement.

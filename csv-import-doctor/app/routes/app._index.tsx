@@ -83,6 +83,7 @@ export default function Index() {
   const [repairHistory, setRepairHistory] = useState<AppliedRepair[][]>([]);
   const [error, setError] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisStage, setAnalysisStage] = useState('');
   const [analysisAnnouncement, setAnalysisAnnouncement] = useState('');
   const [needsDelimiterConfirmation, setNeedsDelimiterConfirmation] = useState(false);
   const [manualDelimiter, setManualDelimiter] = useState('');
@@ -144,14 +145,21 @@ export default function Index() {
     try {
       fileRef.current = file;
       setIsAnalyzing(true);
-      setAnalysisAnnouncement('Analizando el archivo localmente.');
+      setAnalysisStage('Preparando análisis local…');
+      setAnalysisAnnouncement('Análisis iniciado en este navegador.');
       const worker = new Worker(new URL('../workers/csv-analysis.worker.ts', import.meta.url), { type: 'module' });
       workerRef.current = worker;
-      worker.onmessage = (event: MessageEvent<{ ok: true; parsed: ParsedCsv; issues: CsvIssue[]; proposals: RepairProposal[] } | { ok: false; message: string }>) => {
+      worker.onmessage = (event: MessageEvent<{ progress: string } | { ok: true; parsed: ParsedCsv; issues: CsvIssue[]; proposals: RepairProposal[] } | { ok: false; message: string }>) => {
         if (workerRef.current !== worker) return;
+        if ('progress' in event.data) {
+          setAnalysisStage(event.data.progress);
+          setAnalysisAnnouncement(event.data.progress);
+          return;
+        }
         worker.terminate();
         workerRef.current = null;
         setIsAnalyzing(false);
+        setAnalysisStage('');
         if (event.data.ok === false) {
           fileRef.current = null;
           setError(event.data.message);
@@ -175,6 +183,7 @@ export default function Index() {
         workerRef.current = null;
         fileRef.current = null;
         setIsAnalyzing(false);
+        setAnalysisStage('');
         setError('No se pudo analizar el archivo en este navegador. Prueba con un CSV más pequeño o revisa su codificación.');
         setAnalysisAnnouncement('');
       };
@@ -184,6 +193,7 @@ export default function Index() {
       workerRef.current = null;
       fileRef.current = null;
       setIsAnalyzing(false);
+      setAnalysisStage('');
       setError('No se pudo iniciar el análisis local.');
       setAnalysisAnnouncement('');
     }
@@ -304,7 +314,7 @@ export default function Index() {
               <option value="|">Barra vertical (|)</option>
             </select>
           </label>}
-          {isAnalyzing && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><s-spinner size="base" accessibilityLabel="Analizando" />Analizando localmente… <button type="button" style={buttonStyle} onClick={() => { workerRef.current?.terminate(); workerRef.current = null; fileRef.current = null; setIsAnalyzing(false); setAnalysisAnnouncement('Análisis cancelado.'); }}>Cancelar</button></div>}
+          {isAnalyzing && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><s-spinner size="base" accessibilityLabel="Analizando" /><span>{analysisStage}</span><button type="button" style={buttonStyle} onClick={() => { workerRef.current?.terminate(); workerRef.current = null; fileRef.current = null; setIsAnalyzing(false); setAnalysisStage(''); setAnalysisAnnouncement('Análisis cancelado.'); }}>Cancelar</button></div>}
           {error && <p role="alert" style={{ color: '#b42318', margin: 0 }}>{error}</p>}
           {filename && <p style={{ margin: 0 }}>Archivo: <strong>{filename}</strong></p>}
         </div>

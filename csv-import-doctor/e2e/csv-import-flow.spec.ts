@@ -802,6 +802,7 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     mimeType: 'text/csv',
     buffer: nearLimitCsv,
   });
+  await expect(app.getByText('Analizando la estructura CSV…')).toBeVisible();
   await expect(app.getByRole('status').first()).toContainText('Análisis completado: 1 filas');
   await expect(app.getByText('Shopify product CSV files cannot exceed 15 MB; split this file before importing.')).toBeVisible();
   await expect(app.locator('a[href="https://help.shopify.com/en/manual/products/import-export/import-products"]')).toBeVisible();
