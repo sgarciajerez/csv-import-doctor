@@ -60,6 +60,28 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await page.keyboard.press('Enter');
   await expect(importMode).toHaveValue('create');
 
+  await page.setViewportSize({ width: 390, height: 844 });
+  const currentHeaders = await readFile(resolve(process.cwd(), '..', 'fixtures', 'shopify-product-current-headers.csv'));
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'shopify-product-current-headers.csv',
+    mimeType: 'text/csv',
+    buffer: currentHeaders,
+  });
+  await expect(app.getByRole('table')).toBeVisible();
+  const narrowLayout = await appFrame.evaluate(() => {
+    const table = document.querySelector('table');
+    const tableWrapper = table?.parentElement;
+    return {
+      documentOverflows: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      previewHeaderCount: table?.querySelectorAll('thead th').length ?? 0,
+      tableWrapperFitsViewport: Boolean(tableWrapper && tableWrapper.clientWidth <= document.documentElement.clientWidth),
+    };
+  });
+  expect(narrowLayout.documentOverflows).toBe(false);
+  expect(narrowLayout.previewHeaderCount).toBe(20);
+  expect(narrowLayout.tableWrapperFitsViewport).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 900 });
+
   const fixture = await readFile(resolve(process.cwd(), '..', 'fixtures', 'e2e-review.csv'));
   await app.locator('input[type="file"]').setInputFiles({
     name: 'e2e-review.csv',
