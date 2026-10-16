@@ -178,6 +178,8 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(applyRepairButton).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(app.getByRole('status').filter({ hasText: 'Cambios aplicados: 1' })).toBeVisible();
+  const repairedAccessibilityViolations = await auditEmbeddedAppAccessibility(appFrame);
+  expect(repairedAccessibilityViolations, JSON.stringify(repairedAccessibilityViolations, null, 2)).toEqual([]);
 
   await app.getByRole('button', { name: 'Deshacer última aplicación' }).click();
   await expect(app.getByText(/Cambios aplicados:/)).not.toBeVisible();
@@ -222,6 +224,8 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
   await expect(app.getByRole('button', { name: 'Descargar CSV revisado' })).toBeDisabled();
   await expect(app.getByRole('button', { name: 'Descargar informe JSON' })).toBeDisabled();
   await expect(app.getByRole('alert')).toContainText('Descarga bloqueada: confirma el separador');
+  const pendingDelimiterAccessibilityViolations = await auditEmbeddedAppAccessibility(appFrame);
+  expect(pendingDelimiterAccessibilityViolations, JSON.stringify(pendingDelimiterAccessibilityViolations, null, 2)).toEqual([]);
   const delimiterSelect = app.getByLabel('Confirmar separador del CSV');
   await delimiterSelect.selectOption(';');
   await expect(app.getByRole('status').first()).toContainText('Análisis completado: 1 filas');
