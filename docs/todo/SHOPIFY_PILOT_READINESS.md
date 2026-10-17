@@ -152,7 +152,7 @@ Estos puntos forman parte del cierre de calidad del producto, aunque no requiere
 
 Estos requisitos no bloquean por sí solos un staging o un piloto privado, pero sí forman parte de una salida pública:
 
-1. **Elegibilidad de API:** confirmar con Shopify que el análisis local sin scopes de Admin API cumple los requisitos de distribución pública. No pedir scopes de productos sin una necesidad funcional documentada.
+1. **Elegibilidad de API (bloqueante para App Store):** Shopify exige que una app de App Store use APIs de Shopify; las apps que no usan ni necesitan ninguna no están permitidas. La distribución pública también indica que la app debe sincronizar ciertos datos con Shopify. El producto actual procesa el CSV localmente y usa App Bridge y webhooks de instalación/cumplimiento, pero no consulta ni sincroniza datos del catálogo mediante Admin GraphQL. Shopify no ha confirmado si esa integración existente satisface el requisito. Antes de seleccionar la distribución pública para la app de producción o preparar el listing, obtener confirmación de Shopify o decidir una función de valor para el comerciante que use Admin GraphQL (por ejemplo, detectar colisiones con productos existentes); entonces solicitar solo el scope mínimo que esa función necesite. No añadir scopes sin función aprobada.
 2. **Privacidad y cumplimiento:** validar los topics obligatorios, HMAC, respuestas y borrado con el despliegue real. El código/configuración existentes son evidencia parcial, no sustituyen una entrega real.
 3. **Listing y soporte:** preparar textos, idioma, icono/capturas, pasos de revisión, política pública, contacto de soporte y respuesta a comerciantes.
 4. **Cobro:** decidir gratuito o de pago. Para una app pública de pago, elegir y probar el flujo Shopify compatible con el modelo de precios. La distribución personalizada no sirve para Shopify App Billing.
@@ -162,8 +162,8 @@ Fuentes: [Requisitos de Shopify App Store](https://shopify.dev/docs/apps/launch/
 
 ## Orden recomendado
 
-1. Confirmar la app de producción y su canal de distribución en Dev Dashboard antes de fijar su configuración.
-2. Preparar hosting, dominio, URLs, secretos y base de datos durable en staging.
+1. Confirmar el modelo de distribución y monetización; para App Store, resolver primero el gate de elegibilidad de APIs y comprobar en Dev Dashboard el estado de la app de producción. Shopify advierte que la distribución seleccionada no se puede cambiar.
+2. Elegir hosting y preparar dominio, URLs, secretos y base de datos durable en staging.
 3. Probar instalación, autenticación, sesiones y webhooks en staging.
 4. Completar privacidad y soporte antes de invitar al piloto.
 5. Hacer revisión de rendimiento/accesibilidad y recoger feedback del piloto.
