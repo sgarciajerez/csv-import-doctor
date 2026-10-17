@@ -92,6 +92,12 @@ try {
   server.stderr.on('data', (chunk) => { serverOutput = `${serverOutput}${chunk}`.slice(-2_000); });
 
   await waitForServer(port);
+  const healthResponse = await fetch(`http://127.0.0.1:${port}/healthz`);
+  assert.equal(healthResponse.status, 200);
+  assert.equal(healthResponse.headers.get('content-type'), 'text/plain; charset=utf-8');
+  assert.equal(healthResponse.headers.get('cache-control'), 'no-store');
+  assert.equal(await healthResponse.text(), 'ok');
+
   const body = JSON.stringify({ shop_id: 0, shop_domain: fixtureShop });
   const validResponse = await signedRequest(port, body);
   assert.equal(validResponse.status, 200);
@@ -99,7 +105,7 @@ try {
 
   const invalidResponse = await signedRequest(port, body, Buffer.alloc(32).toString('base64'));
   assert.equal(invalidResponse.status, 401);
-  console.log('HTTP integration passed: signed shop/redact removed only its fixture session; invalid HMAC was rejected.');
+  console.log('HTTP integration passed: database health check, signed shop/redact, and invalid-HMAC rejection.');
 } finally {
   if (server && server.exitCode === null) {
     server.kill();
