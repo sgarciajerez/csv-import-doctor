@@ -77,3 +77,34 @@ jobs:
           test ! -e /app/csv-import-doctor/.shopify/local-state &&
           test ! -e /app/csv-import-doctor/prisma/dev.sqlite &&
           test ! -e /app/csv-import-doctor/playwright/.auth/state.json'
+      - name: Smoke test production container
+        run: |
+          container_name=csv-import-doctor-smoke
+          cleanup() { docker rm --force "$container_name" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          docker run --detach --name "$container_name" \
+            --publish 127.0.0.1:3000:3000 \
+            --env NODE_ENV=production \
+            --env PORT=3000 \
+            --env SHOPIFY_APP_URL=https://example.com \
+            --env SHOPIFY_API_KEY=ci-test-api-key \
+            --env SHOPIFY_API_SECRET=ci-test-api-secret \
+            --env DATABASE_URL=file:/tmp/csv-import-doctor-ci.sqlite \
+            csv-import-doctor:ci
+
+          for attempt in $(seq 1 30); do
+            if response=$(curl --fail --silent http://127.0.0.1:3000/healthz 2>/dev/null) && [ "$response" = "ok" ]; then
+              exit 0
+            fi
+
+            if [ "$(docker inspect --format '{{.State.Running}}' "$container_name")" != "true" ]; then
+              docker logs "$container_name"
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          docker logs "$container_name"
+          exit 1
