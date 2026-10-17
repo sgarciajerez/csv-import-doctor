@@ -48,6 +48,40 @@ async function waitForServer(port) {
   throw new Error(`The local app server did not become ready. ${serverOutput}`);
 }
 
+async function startServer(port, databaseUrl = process.env.DATABASE_URL) {
+  serverOutput = '';
+  server = spawn(process.execPath, [serverCli, serverEntry], {
+    cwd: appRoot,
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+      NODE_ENV: 'production',
+      PORT: String(port),
+      SHOPIFY_API_KEY: apiKey,
+      SHOPIFY_API_SECRET: apiSecret,
+      SHOPIFY_APP_URL: `http://127.0.0.1:${port}`,
+      SCOPES: '',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  server.stdout.on('data', (chunk) => { serverOutput = `${serverOutput}${chunk}`.slice(-2_000); });
+  server.stderr.on('data', (chunk) => { serverOutput = `${serverOutput}${chunk}`.slice(-2_000); });
+  await waitForServer(port);
+}
+
+async function stopServer() {
+  if (!server || server.exitCode !== null) {
+    server = undefined;
+    return;
+  }
+
+  const exit = once(server, 'exit').then(() => true);
+  server.kill();
+  const stopped = await Promise.race([exit, delay(5_000).then(() => false)]);
+  if (!stopped) server.kill('SIGKILL');
+  server = undefined;
+}
+
 function signedRequest(port, body, signature = createHmac('sha256', apiSecret).update(body).digest('base64')) {
   return fetch(`http://127.0.0.1:${port}/webhooks/compliance`, {
     method: 'POST',
@@ -75,23 +109,7 @@ try {
   });
 
   const port = await reservePort();
-  server = spawn(process.execPath, [serverCli, serverEntry], {
-    cwd: appRoot,
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      PORT: String(port),
-      SHOPIFY_API_KEY: apiKey,
-      SHOPIFY_API_SECRET: apiSecret,
-      SHOPIFY_APP_URL: `http://127.0.0.1:${port}`,
-      SCOPES: '',
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  server.stdout.on('data', (chunk) => { serverOutput = `${serverOutput}${chunk}`.slice(-2_000); });
-  server.stderr.on('data', (chunk) => { serverOutput = `${serverOutput}${chunk}`.slice(-2_000); });
-
-  await waitForServer(port);
+  await startServer(port);
   const healthResponse = await fetch(`http://127.0.0.1:${port}/healthz`);
   assert.equal(healthResponse.status, 200);
   assert.equal(healthResponse.headers.get('content-type'), 'text/plain; charset=utf-8');
@@ -105,16 +123,17 @@ try {
 
   const invalidResponse = await signedRequest(port, body, Buffer.alloc(32).toString('base64'));
   assert.equal(invalidResponse.status, 401);
-  console.log('HTTP integration passed: database health check, signed shop/redact, and invalid-HMAC rejection.');
+  await stopServer();
+
+  const unavailablePort = await reservePort();
+  const missingDatabaseUrl = `file:missing-health-check-${randomUUID()}/database.sqlite`;
+  await startServer(unavailablePort, missingDatabaseUrl);
+  const unavailableResponse = await fetch(`http://127.0.0.1:${unavailablePort}/healthz`);
+  assert.equal(unavailableResponse.status, 503);
+  assert.equal(await unavailableResponse.text(), 'unavailable');
+  console.log('HTTP integration passed: healthy/unavailable database checks, signed shop/redact, and invalid-HMAC rejection.');
 } finally {
-  if (server && server.exitCode === null) {
-    server.kill();
-    const stopped = await Promise.race([
-      once(server, 'exit').then(() => true),
-      delay(5_000).then(() => false),
-    ]);
-    if (!stopped) server.kill('SIGKILL');
-  }
+  await stopServer();
   await prisma.session.deleteMany({ where: { id: fixtureSessionId } }).catch(() => {});
   await prisma.$disconnect();
 }
