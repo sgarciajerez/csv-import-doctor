@@ -1,7 +1,7 @@
 # MVP comercial: criterios de salida
 
 **Estado:** pendiente de las decisiones y comprobaciones externas marcadas abajo.
-**Revisado:** 2026-10-16.
+**Revisado:** 2026-10-17.
 
 Este documento separa un piloto limitado de la venta pública a comerciantes. La app actual analiza y repara copias de CSV localmente; no importa productos ni garantiza que Shopify acepte un archivo.
 
@@ -9,7 +9,7 @@ Este documento separa un piloto limitado de la venta pública a comerciantes. La
 
 - La app embebida y el núcleo CSV están implementados; el análisis, las reparaciones y la exportación ocurren en el navegador.
 - Los scopes de Admin API están vacíos. La función principal no lee ni modifica el catálogo de la tienda.
-- Hay pruebas unitarias, E2E autenticadas y CI para lint, typecheck, pruebas y builds. El E2E de la tienda de desarrollo valida la interfaz y el comportamiento local, no sustituye una importación real en Shopify.
+- Hay pruebas unitarias, E2E autenticadas y CI para lint, typecheck, pruebas y builds. GitHub Actions también construye la imagen de producción, inspecciona el contexto de secretos y arranca el contenedor para comprobar `/healthz`. El E2E de la tienda de desarrollo valida la interfaz y el comportamiento local, no sustituye una importación real en Shopify.
 - La configuración de la app aún apunta a `https://example.com`; no hay despliegue de producción listo.
 - La política enlazada no está lista para publicar: faltan responsable/contacto, alojamiento y regiones, y retención aplicable.
 - No están definidos el precio ni los planes. No hay integración/configuración de cobro.
@@ -35,7 +35,7 @@ Para distribuir a muchas tiendas independientes, Shopify requiere una app de dis
 
 ### Bloqueos de publicación y venta
 
-- [ ] Confirmar que Shopify acepta el valor principal de análisis local con uso mínimo o nulo de Admin API. No añadir scopes de productos solo para aparentar integración.
+- [ ] Resolver elegibilidad de APIs antes de fijar distribución pública: Shopify App Store exige usar APIs de Shopify y excluye apps que no las usen ni necesiten; distribución pública también indica que la app debe sincronizar ciertos datos con Shopify. La app usa App Bridge y webhooks de instalación/cumplimiento, pero no consulta ni sincroniza el catálogo con Admin GraphQL. Shopify no ha confirmado si esa integración satisface el requisito. Obtener confirmación de Shopify o decidir una función útil basada en Admin GraphQL; no añadir scopes de productos sin una necesidad funcional documentada.
 - [ ] Crear entorno de producción: hosting operado, TLS, dominio, secretos fuera del repositorio, despliegue y rollback documentados.
 - [ ] Sustituir `example.com` en `application_url` y `redirect_urls`; validar la configuración con Shopify CLI y probar OAuth en producción.
 - [ ] Definir responsable, correo de soporte, privacidad, regiones de alojamiento, datos de sesión retenidos y plazos de eliminación; publicar política coherente con la implementación.
