@@ -85,9 +85,9 @@ La guía Shopify para este template identifica `SHOPIFY_APP_URL`, `SHOPIFY_API_K
 | `SCOPES` | Se divide por comas; actualmente no se solicitan permisos | Vacía para el comportamiento actual; no ampliarla sin una función que lo requiera |
 | `PORT` | Puerto HTTP; Docker declara `3000` y Vite usa `3000` por defecto | Configurar `3000` salvo que el hosting inyecte el puerto y se ajuste `EXPOSE` |
 | `SHOP_CUSTOM_DOMAIN` | Lista opcional de dominios de tienda admitidos por la librería | Omitir salvo que se haya configurado un dominio personalizado |
-| `DATABASE_URL` | No se consulta: `schema.prisma` fija `file:dev.sqlite` | No confiar en esta variable hasta cambiar el esquema/configuración Prisma y validar desarrollo, migraciones y producción |
+| `DATABASE_URL` | La consume Prisma; el proveedor sigue siendo SQLite | Obligatoria en producción; debe señalar el archivo del volumen durable. En desarrollo, los scripts de app y persistencia aplican `file:dev.sqlite` si no se define |
 
-Con la configuración actual, `file:dev.sqlite` está en el directorio `prisma/` de la app; en la imagen, la ruta corresponde a `/app/prisma/dev.sqlite`. Si se conserva SQLite, el hosting debe montar ahí un volumen durable con permisos de escritura para el proceso, hacer backup y restaurar, y ejecutar una sola réplica que use ese volumen. Shopify recomienda configurar la URL de base de datos mediante variable de entorno para permitir almacenamiento distinto en desarrollo y producción; convertir el esquema actual a esa forma es un trabajo pendiente antes de usar `DATABASE_URL` o cambiar de proveedor.
+El proveedor Prisma sigue fijado en SQLite: `DATABASE_URL` permite cambiar la ubicación del archivo, no usar PostgreSQL. El valor local por defecto `file:dev.sqlite` se resuelve junto a `prisma/schema.prisma`; para la imagen, se puede configurar un archivo dentro de `/app/prisma` y montar un volumen durable ahí, con permisos de escritura. El proceso debe usar una sola réplica y probar backup/restauración. Shopify recomienda configurar la URL de base de datos por variable de entorno para separar desarrollo y producción; una base de datos de otro proveedor requeriría cambiar el provider Prisma y validar migraciones.
 
 ### 3. Cerrar las pruebas E2E y congelar funciones
 
