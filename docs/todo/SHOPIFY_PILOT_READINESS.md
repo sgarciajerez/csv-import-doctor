@@ -8,7 +8,7 @@
 
 Cerrar el código funcional actual y preparar una instalación fiable para comerciantes, empezando por un piloto privado. La app analiza archivos de productos en el navegador; no importa productos ni promete que Shopify acepte un archivo.
 
-Se considera **cerrado el código funcional**: la suite E2E autenticada pasó (1/1) el 2026-10-16, incluidas las pruebas de flujo principal y del diagnóstico del perfil `.67`; el resultado está registrado en [`docs/PROGRESS.md`](../PROGRESS.md). En ese punto:
+Se considera **cerrado el código funcional para el piloto**: la suite E2E autenticada pasó (1/1) el 2026-10-17 con el perfil `.68`, incluida la advertencia del máximo de imágenes cuando estas llegan por `Variant image URL`; el resultado está registrado en [`docs/PROGRESS.md`](../PROGRESS.md). En ese punto:
 
 - No se añaden nuevas funciones, reglas CSV ni cambios de alcance.
 - Se permiten cambios imprescindibles para configuración, persistencia, despliegue e integración con Shopify.
@@ -28,7 +28,7 @@ Este juicio no significa que hoy se pueda ofrecer a comerciantes: faltan los gat
 - `csv-import-doctor/shopify.app.toml` aún usa `https://example.com` como host de `application_url` y `redirect_urls`. La ruta OAuth se alineó con `authPathPrefix: "/auth"` en `app/shopify.server.ts` y la guía oficial: `/auth/callback`; sustituir el host al preparar un entorno real. El TOML no contiene una clave `distribution`; además, `app/shopify.server.ts` fija `AppDistribution.AppStore`. Verificar en Dev Dashboard el canal de la app de producción y confirmar que coincide con ese modo antes de instalarla.
 - `csv-import-doctor/prisma/schema.prisma` usa SQLite (`file:dev.sqlite`). En producción se requiere un volumen realmente persistente con una estrategia de copia de seguridad y una sola instancia compatible, o una base de datos administrada adecuada al hosting.
 - Los scopes de Admin API están vacíos, coherentes con el análisis local actual. No añadir scopes para aparentar una integración.
-- El perfil `.67` y sus pruebas unitarias se han implementado. Core (108 pruebas), lint, typecheck y build pasaron en la ejecución local anterior. La suite E2E autenticada completa pasó el 2026-10-16 (1/1); incluye el flujo principal, el aviso `.67` con 10.001 variantes candidatas, progreso en archivo de 20 MB y diagnóstico del límite de 100.001 filas. Resultado detallado en `docs/PROGRESS.md`.
+- El perfil `.68` y sus pruebas unitarias se han implementado. Core (109 pruebas), lint, typecheck y build pasaron el 2026-10-17. La app pasó sus 6 pruebas unitarias, lint, typecheck y build. La suite E2E autenticada completa pasó el 2026-10-17 (1/1, 41,6 s); incluye el flujo principal, el aviso `.67` con 10.001 variantes candidatas, el aviso `.68` para 251 URL de variante, progreso en archivo de 20 MB y diagnóstico del límite de 100.001 filas. Resultado detallado en `docs/PROGRESS.md`.
 - La política de privacidad es un borrador: faltan identidad y contacto del responsable, proveedor y regiones de alojamiento, retención, borrado, subprocesadores y contacto de soporte.
 - La ruta scaffold `/app/additional` se eliminó en `8c74c8b`; esa limpieza no sustituye las comprobaciones de despliegue.
 
@@ -91,13 +91,13 @@ El proveedor Prisma sigue fijado en SQLite: `DATABASE_URL` permite cambiar la ub
 
 ### 3. Cerrar las pruebas E2E y congelar funciones
 
-**Estado:** completado el 2026-10-16 y revalidado el 2026-10-17 después de parametrizar SQLite y añadir el health check. El E2E autenticado pasó 1/1; véase `docs/PROGRESS.md`. El código funcional queda congelado según el criterio acordado.
+**Estado:** completado y revalidado el 2026-10-17 con el perfil `.68`. El E2E autenticado pasó 1/1 en 41,6 s; véase `docs/PROGRESS.md`. El código funcional queda congelado según el criterio acordado.
 
 **Cómo encararlo:**
 
 1. Ejecutar la suite E2E autenticada con una sesión Shopify vigente y el servidor/túnel del entorno esperado.
 2. Confirmar el flujo principal: carga local, análisis, filtros, reparación seleccionada, revalidación, descarga y ausencia del contenido CSV en solicitudes de red.
-3. Ejecutar la E2E de `.67` con más de 10.000 filas candidatas a variantes y comprobar mensaje, explicación condicional y modo crear.
+3. Comprobar en la suite autenticada el diagnóstico `.67` con más de 10.000 filas candidatas a variantes y el diagnóstico `.68` cuando se exceden 250 imágenes por URL de variante.
 4. Si un diagnóstico queda fuera del límite visual de incidencias, comprobar la experiencia real de búsqueda/filtro; no maquillar la prueba con un fixture que no refleje el formato de Shopify.
 5. Ejecutar de nuevo las verificaciones de core, lint, tipos y builds después de cualquier corrección necesaria.
 6. Registrar comandos, resultados, duración, entorno y artefactos del trace en `docs/PROGRESS.md`; dejar los cambios revisados y commiteados en `develop`.
@@ -145,7 +145,7 @@ Estos puntos forman parte del cierre de calidad del producto, aunque no requiere
 
 - Medir duración y memoria máxima con un dispositivo representativo menos potente, CSV de filas numerosas y archivo cercano al límite local. Registrar navegador, hardware, tamaño, filas y repeticiones en [`docs/PERFORMANCE_BASELINE.md`](../PERFORMANCE_BASELINE.md).
 - Completar la revisión manual de teclado, lector de pantalla, contraste real sobre Polaris y anchuras móviles en [`docs/ACCESSIBILITY_REVIEW.md`](../ACCESSIBILITY_REVIEW.md).
-- Revisar el CI para asegurar que core, lint, tipos y builds cubren cambios al perfil `.67`; definir cómo se ejecuta el E2E autenticado sin guardar credenciales Shopify en logs o artefactos públicos.
+- Revisar el CI para asegurar que core, lint, tipos y builds cubren cambios al perfil `.68`; definir cómo se ejecuta el E2E autenticado sin guardar credenciales Shopify en logs o artefactos públicos.
 - No autorizar una importación real de producto por inferencia. Si se necesita para el piloto, tratarla como un paso separado con tienda y producto de prueba acordados, resultado registrado y limpieza posterior.
 
 ## Ruta adicional si el objetivo es vender públicamente en App Store
@@ -177,7 +177,7 @@ Fuentes: [Requisitos de Shopify App Store](https://shopify.dev/docs/apps/launch/
 
 | Fecha | Decisión o verificación | Evidencia/enlace | Responsable | Estado |
 |---|---|---|---|---|
-| 2026-10-16 | Cierre funcional tras suite E2E verde; luego solo integración y correcciones demostradas | Suite autenticada 1/1; detalles y tiempos en `docs/PROGRESS.md` | Santiago / agente | Completado |
+| 2026-10-17 | Cierre funcional tras suite E2E verde con perfil `.68`; luego solo integración y correcciones demostradas | Suite autenticada 1/1; detalles y tiempos en `docs/PROGRESS.md` | Santiago / agente | Completado |
 | 2026-10-16 | Distribución inicial (piloto personalizado o App Store pública) | Dev Dashboard + decisión documentada aquí | Santiago | Pendiente |
 | 2026-10-16 | Hosting, dominio y estrategia durable de DB | Configuración de staging, prueba de reinicio/rollback | Santiago / agente | Pendiente |
 | 2026-10-16 | Política y contacto de soporte publicados | URL pública + revisión contra proveedor/código | Santiago | Pendiente |
