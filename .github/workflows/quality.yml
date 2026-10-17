@@ -32,6 +32,8 @@ jobs:
   shopify-app:
     name: Shopify app
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: file:ci.sqlite
     defaults:
       run:
         working-directory: csv-import-doctor
@@ -51,5 +53,29 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:unit
       - run: npm run build
-      - run: npx prisma migrate deploy
+      - run: npm run setup
       - run: npm run test:integration:webhook
+
+  container-image:
+    name: Shopify app container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create sensitive-file canaries for .dockerignore
+        run: |
+          printf '%s\n' 'docker-ignore-canary' > .env.docker-ignore-check
+          mkdir -p .shopify playwright/.auth prisma
+          printf '%s\n' 'docker-ignore-canary' > .shopify/local-state
+          printf '%s\n' 'docker-ignore-canary' > prisma/dev.sqlite
+          printf '%s\n' 'docker-ignore-canary' > playwright/.auth/state.json
+        working-directory: csv-import-doctor
+      - name: Build Docker image
+        run: docker build --tag csv-import-doctor:ci .
+        working-directory: csv-import-doctor
+      - name: Check sensitive local files are absent from image
+        run: >-
+          docker run --rm --entrypoint sh csv-import-doctor:ci -c
+          'test ! -e /app/.env.docker-ignore-check &&
+          test ! -e /app/.shopify/local-state &&
+          test ! -e /app/prisma/dev.sqlite &&
+          test ! -e /app/playwright/.auth/state.json'
