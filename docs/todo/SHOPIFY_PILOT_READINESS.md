@@ -73,6 +73,22 @@ Fuente: [Shopify: distribución de apps](https://shopify.dev/docs/apps/launch/di
 
 Fuentes: [Shopify: desplegar a un proveedor de hosting](https://shopify.dev/docs/apps/launch/deployment/deploy-to-hosting-service) y [Shopify: despliegue](https://shopify.dev/docs/apps/launch/deployment).
 
+### Variables de ejecución según la configuración actual
+
+La guía Shopify para este template identifica `SHOPIFY_APP_URL`, `SHOPIFY_API_KEY` y `SHOPIFY_API_SECRET` como necesarias; `SCOPES` y `PORT` son opcionales. El código de este repositorio añade `SHOP_CUSTOM_DOMAIN` como opción. Antes de copiar valores a un hosting, revisar la tabla contra el canal y la app de producción elegidos.
+
+| Variable | Uso actual | Tratamiento |
+|---|---|---|
+| `SHOPIFY_APP_URL` | Origen público usado por la librería Shopify; debe coincidir con `application_url` | Configuración de entorno, URL HTTPS estable |
+| `SHOPIFY_API_KEY` | Client ID de la app | Configuración de entorno |
+| `SHOPIFY_API_SECRET` | Secreto usado para autenticación/webhooks | Secreto del hosting; nunca en Git, imagen ni logs |
+| `SCOPES` | Se divide por comas; actualmente no se solicitan permisos | Vacía para el comportamiento actual; no ampliarla sin una función que lo requiera |
+| `PORT` | Puerto HTTP; Docker declara `3000` y Vite usa `3000` por defecto | Configurar `3000` salvo que el hosting inyecte el puerto y se ajuste `EXPOSE` |
+| `SHOP_CUSTOM_DOMAIN` | Lista opcional de dominios de tienda admitidos por la librería | Omitir salvo que se haya configurado un dominio personalizado |
+| `DATABASE_URL` | No se consulta: `schema.prisma` fija `file:dev.sqlite` | No confiar en esta variable hasta cambiar el esquema/configuración Prisma y validar desarrollo, migraciones y producción |
+
+Con la configuración actual, `file:dev.sqlite` está en el directorio `prisma/` de la app; en la imagen, la ruta corresponde a `/app/prisma/dev.sqlite`. Si se conserva SQLite, el hosting debe montar ahí un volumen durable con permisos de escritura para el proceso, hacer backup y restaurar, y ejecutar una sola réplica que use ese volumen. Shopify recomienda configurar la URL de base de datos mediante variable de entorno para permitir almacenamiento distinto en desarrollo y producción; convertir el esquema actual a esa forma es un trabajo pendiente antes de usar `DATABASE_URL` o cambiar de proveedor.
+
 ### 3. Cerrar las pruebas E2E y congelar funciones
 
 **Estado:** completado el 2026-10-16. La suite E2E autenticada pasó 1/1; véase `docs/PROGRESS.md`. El código funcional queda congelado según el criterio acordado.
