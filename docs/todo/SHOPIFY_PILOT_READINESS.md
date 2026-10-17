@@ -91,7 +91,7 @@ El proveedor Prisma sigue fijado en SQLite: `DATABASE_URL` permite cambiar la ub
 
 ### 3. Cerrar las pruebas E2E y congelar funciones
 
-**Estado:** completado el 2026-10-16. La suite E2E autenticada pasó 1/1; véase `docs/PROGRESS.md`. El código funcional queda congelado según el criterio acordado.
+**Estado:** completado el 2026-10-16 y revalidado el 2026-10-17 después de parametrizar SQLite y añadir el health check. El E2E autenticado pasó 1/1; véase `docs/PROGRESS.md`. El código funcional queda congelado según el criterio acordado.
 
 **Cómo encararlo:**
 
