@@ -1,3 +1,18 @@
 .cache
 build
 node_modules
+
+# Never bake local credentials or Shopify session state into an image.
+.env
+.env.*
+!.env.example
+.shopify
+.shopify.lock
+
+# Local session database and browser-authentication artifacts.
+prisma/dev.sqlite
+prisma/dev.sqlite-*
+playwright/.auth
+playwright/test-results
+playwright/playwright-report
+test-results

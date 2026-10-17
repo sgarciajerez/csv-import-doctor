@@ -63,8 +63,8 @@ Fuente: [Shopify: distribución de apps](https://shopify.dev/docs/apps/launch/di
 1. Elegir hosting operable con HTTPS y dominio estable; comprobar que la plataforma soporta el modo de ejecución de React Router y el almacenamiento elegido.
 2. Registrar `application_url` con el origen exacto del despliegue y `redirect_urls` con `https://<dominio>/auth/callback`, consistente con `authPathPrefix: "/auth"`. No conservar `example.com` en la configuración de producción.
 3. Mantener configuración separada para desarrollo y producción, sin sobrescribir las URLs locales/túnel.
-4. Inventariar las variables y secretos que necesita la app. Cargarlos en el gestor de secretos del hosting; no subir valores reales al repositorio ni a logs.
-5. Resolver SQLite antes del piloto: demostrar persistencia a través de reinicio y redeploy en un único volumen durable, con copia de seguridad y restauración probadas; o migrar a una base de datos administrada y validar las migraciones Prisma.
+4. Inventariar las variables y secretos que necesita la app. Cargarlos en el gestor de secretos del hosting; no subir valores reales al repositorio ni a logs. Comprobar que el contexto de build también excluye `.env*`, `.shopify`, la SQLite local y los perfiles de autenticación del navegador.
+5. Resolver SQLite antes del piloto: demostrar persistencia a través de reinicio y redeploy en un único volumen durable, con copia de seguridad y restauración probadas; o migrar a una base de datos administrada y validar las migraciones Prisma. La imagen actual usa el archivo `prisma/dev.sqlite`; verificar el montaje durable en esa ruta si se conserva SQLite.
 6. Documentar build, migraciones, despliegue, health check, logs, rollback y recuperación de la base de datos.
 7. Desplegar primero un entorno de staging. Validar TLS, URL de aplicación, callback, acceso desde Admin, reinicio y rollback antes de usar producción.
 
