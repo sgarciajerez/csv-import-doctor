@@ -1101,13 +1101,46 @@ describe('validateShopifyProductCsv', () => {
     expect(imageLimitIssues[0]).toMatchObject({
       severity: 'warning',
       category: 'recommendation',
-      message: 'This product lists 251 product image URL entries; Shopify allows a maximum of 250 images per product.',
+      message: 'This product has 251 image URL entries across product and variant image columns; Shopify allows a maximum of 250 images per product.',
       row: 252,
       column: 'Product image URL',
       sourceUrl: 'https://help.shopify.com/en/manual/products/import-export/using-csv',
       profileVersion: SHOPIFY_PRODUCT_CSV_PROFILE,
     });
     expect(invalidCsv.rows[250]?.[2]).toBe('https://cdn.example.test/image-250.jpg');
+  });
+
+  it('counts distinct variant image URLs that add images beyond the product gallery', () => {
+    const variantOnlyCsv = [
+      'Title,URL handle,Variant image URL',
+      ...Array.from({ length: 251 }, (_, index) => `${index === 0 ? 'Shirt' : ''},shirt,https://cdn.example.test/variant-${index}.jpg`),
+    ].join('\n');
+    const overLimit = validateShopifyProductCsv(parseCsv(variantOnlyCsv), { mode: 'create' })
+      .filter((issue) => issue.ruleId === 'product-image-count-exceeds-limit');
+    const productImages = Array.from({ length: 250 }, (_, index) => `,shirt,https://cdn.example.test/image-${index}.jpg,`);
+    const repeatedAssignmentCsv = [
+      'Title,URL handle,Product image URL,Variant image URL',
+      'Shirt,shirt,https://cdn.example.test/shared.jpg,',
+      ...productImages.slice(1),
+      ',shirt,,https://cdn.example.test/shared.jpg',
+      ',shirt,,https://cdn.example.test/variant-extra.jpg',
+      ',shirt,,https://cdn.example.test/variant-extra.jpg',
+    ].join('\n');
+    const withRepeatedAssignments = validateShopifyProductCsv(parseCsv(repeatedAssignmentCsv), { mode: 'create' })
+      .filter((issue) => issue.ruleId === 'product-image-count-exceeds-limit');
+
+    expect(overLimit).toHaveLength(1);
+    expect(overLimit[0]).toMatchObject({
+      message: 'This product has 251 image URL entries across product and variant image columns; Shopify allows a maximum of 250 images per product.',
+      row: 252,
+      column: 'Variant image URL',
+      sourceUrl: 'https://help.shopify.com/en/manual/products/product-media/add-media',
+      profileVersion: SHOPIFY_PRODUCT_CSV_PROFILE,
+    });
+    expect(overLimit[0]?.explanation).toContain('unique variant image URLs');
+    expect(overLimit[0]?.explanation).toContain('does not document how identical URLs are deduplicated');
+    expect(withRepeatedAssignments).toHaveLength(1);
+    expect(withRepeatedAssignments[0]?.row).toBe(253);
   });
 
   it('checks image URL structure locally without claiming public reachability', () => {

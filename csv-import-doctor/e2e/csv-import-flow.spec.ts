@@ -693,7 +693,16 @@ test('analyzes, filters, repairs, and downloads locally without sending CSV data
     mimeType: 'text/csv',
     buffer: Buffer.from(`Title,URL handle,Product image URL\n${productImageRows.join('\n')}`, 'utf8'),
   });
-  await expect(appBody).toContainText('This product lists 251 product image URL entries; Shopify allows a maximum of 250 images per product.');
+  await expect(appBody).toContainText('This product has 251 image URL entries across product and variant image columns; Shopify allows a maximum of 250 images per product.');
+
+  const variantImageRows = Array.from({ length: 251 }, (_, index) => `${index === 0 ? 'Variant image limit' : ''},variant-image-limit,https://cdn.example.test/variant-${index}.jpg`);
+  await app.locator('input[type="file"]').setInputFiles({
+    name: 'variant-images-over-limit.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`Title,URL handle,Variant image URL\n${variantImageRows.join('\n')}`, 'utf8'),
+  });
+  await expect(appBody).toContainText('This product has 251 image URL entries across product and variant image columns; Shopify allows a maximum of 250 images per product.');
+  await expect(appBody).toContainText('Fila 252 · Variant image URL');
 
   const privateImageUrlMarker = 'CSV-DOCTOR-IMAGE-PRIVATE-9K2';
   await app.locator('input[type="file"]').setInputFiles({

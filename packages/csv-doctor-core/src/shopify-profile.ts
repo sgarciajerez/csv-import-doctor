@@ -1,7 +1,7 @@
 import type { CsvIssue, ParsedCsv, ValidationOptions } from './types.js';
 import { SHOPIFY_PRODUCT_CATEGORY_IDS, SHOPIFY_TAXONOMY_VERSION } from './shopify-taxonomy.js';
 
-export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-16.67';
+export const SHOPIFY_PRODUCT_CSV_PROFILE = 'shopify-product-csv-2026-10-17.68';
 const PRODUCT_CSV_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/using-csv';
 const PRODUCT_MEDIA_SOURCE = 'https://help.shopify.com/en/manual/products/product-media/add-media';
 const PRODUCT_CSV_IMPORT_SOURCE = 'https://help.shopify.com/en/manual/products/import-export/import-products';
@@ -667,6 +667,7 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
     ...imageIndices,
     headerIndex(csv.headers, 'Variant image URL'),
   ].filter((index): index is number => index !== undefined))];
+  const variantImageUrlIndex = headerIndex(csv.headers, 'Variant image URL');
   const imagePositionIndex = headerIndex(csv.headers, 'Image position');
   const imageAltTextIndices = csv.headers
     .map((header, index) => ['Image alt text', 'Image Alt Text'].includes(header) ? index : -1)
@@ -990,8 +991,12 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
   const firstVariantRowByCombination = new Map<string, number>();
   const firstProductRowByHandle = new Map<string, number>();
   const firstSkuRowByValue = new Map<string, number>();
-  const productImageEntryCountByGroup = new Map<string, number>();
-  const reportedProductImageLimits = new Set<string>();
+  const productImageEntriesByGroup = new Map<string, Array<{
+    row: number;
+    columns: string[];
+    urls: string[];
+  }>>();
+  const variantImageEntriesByGroup = new Map<string, Array<{ row: number; url: string }>>();
   let potentialCreatedVariantRows = 0;
   csv.rows.forEach((row, index) => {
     const visibleRow = index + 2;
@@ -1211,23 +1216,22 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
         PRODUCT_CSV_SOURCE,
       ));
     }
+    const group = currentProductImageGroup || `unassigned-row:${visibleRow}`;
     const imageEntryColumns = imageIndices.filter((imageIndex) => (row[imageIndex] ?? '').trim() !== '');
     if (imageEntryColumns.length > 0) {
-      const group = currentProductImageGroup || `unassigned-row:${visibleRow}`;
-      const imageCount = (productImageEntryCountByGroup.get(group) ?? 0) + imageEntryColumns.length;
-      productImageEntryCountByGroup.set(group, imageCount);
-      if (imageCount > MAX_PRODUCT_IMAGES && !reportedProductImageLimits.has(group)) {
-        reportedProductImageLimits.add(group);
-        issues.push(makeIssue(
-          'product-image-count-exceeds-limit',
-          'warning',
-          `This product lists ${imageCount} product image URL entries; Shopify allows a maximum of ${MAX_PRODUCT_IMAGES} images per product.`,
-          visibleRow,
-          imageEntryColumns.map((imageIndex) => csv.headers[imageIndex]).join(' / '),
-          'Shopify allows up to 250 product images and documents one row per image in a product CSV. This count includes nonblank Product image URL and Image Src cells across rows grouped by handle; it does not count Variant image URL references. The original rows and URLs are preserved.',
-          PRODUCT_CSV_SOURCE,
-        ));
-      }
+      const entries = productImageEntriesByGroup.get(group) ?? [];
+      entries.push({
+        row: visibleRow,
+        columns: imageEntryColumns.map((imageIndex) => csv.headers[imageIndex] ?? ''),
+        urls: imageEntryColumns.map((imageIndex) => (row[imageIndex] ?? '').trim()),
+      });
+      productImageEntriesByGroup.set(group, entries);
+    }
+    const variantImageUrl = variantImageUrlIndex === undefined ? '' : (row[variantImageUrlIndex] ?? '').trim();
+    if (variantImageUrl) {
+      const entries = variantImageEntriesByGroup.get(group) ?? [];
+      entries.push({ row: visibleRow, url: variantImageUrl });
+      variantImageEntriesByGroup.set(group, entries);
     }
     for (const imageUrlIndex of imageUrlIndices) {
       const imageUrl = (row[imageUrlIndex] ?? '').trim();
@@ -1777,6 +1781,43 @@ export function validateShopifyProductCsv(csv: ParsedCsv, options: ValidationOpt
       ));
     }
   });
+
+  const imageGroups = new Set([
+    ...productImageEntriesByGroup.keys(),
+    ...variantImageEntriesByGroup.keys(),
+  ]);
+  for (const group of imageGroups) {
+    const productEntries = productImageEntriesByGroup.get(group) ?? [];
+    const variantEntries = variantImageEntriesByGroup.get(group) ?? [];
+    const productImageUrls = new Set(productEntries.flatMap((entry) => entry.urls));
+    const seenVariantImageUrls = new Set<string>();
+    const imageEvents = [
+      ...productEntries.map((entry) => ({ ...entry, kind: 'product' as const })),
+      ...variantEntries.map((entry) => ({ ...entry, kind: 'variant' as const })),
+    ].sort((left, right) => left.row - right.row || (left.kind === 'product' ? -1 : 1));
+    let imageCount = 0;
+    for (const event of imageEvents) {
+      if (event.kind === 'product') {
+        imageCount += event.columns.length;
+      } else {
+        if (productImageUrls.has(event.url) || seenVariantImageUrls.has(event.url)) continue;
+        seenVariantImageUrls.add(event.url);
+        imageCount += 1;
+      }
+      if (imageCount <= MAX_PRODUCT_IMAGES) continue;
+      const column = event.kind === 'product' ? event.columns.join(' / ') : 'Variant image URL';
+      issues.push(makeIssue(
+        'product-image-count-exceeds-limit',
+        'warning',
+        `This product has ${imageCount} image URL entries across product and variant image columns; Shopify allows a maximum of ${MAX_PRODUCT_IMAGES} images per product.`,
+        event.row,
+        column,
+        'Shopify allows up to 250 images per product. Product image CSV rows add gallery images; variant image URLs can reference an existing product image or add a new image. This local estimate counts product image cells and unique variant image URLs that are not listed in the product image columns. Shopify does not document how identical URLs are deduplicated during CSV import. The original rows and URLs are preserved.',
+        event.kind === 'variant' ? PRODUCT_MEDIA_SOURCE : PRODUCT_CSV_SOURCE,
+      ));
+      break;
+    }
+  }
 
   if (options.mode === 'create'
     && csv.headers.filter((header) => header === 'Title').length === 1
