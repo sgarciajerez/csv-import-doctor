@@ -66,7 +66,8 @@ Fuente: [Shopify: distribución de apps](https://shopify.dev/docs/apps/launch/di
 4. Inventariar las variables y secretos que necesita la app. Cargarlos en el gestor de secretos del hosting; no subir valores reales al repositorio ni a logs. Comprobar que el contexto de build también excluye `.env*`, `.shopify`, la SQLite local y los perfiles de autenticación del navegador.
 5. Resolver SQLite antes del piloto: demostrar persistencia a través de reinicio y redeploy en un único volumen durable, con copia de seguridad y restauración probadas; o migrar a una base de datos administrada y validar las migraciones Prisma. La imagen actual usa el archivo `prisma/dev.sqlite`; verificar el montaje durable en esa ruta si se conserva SQLite.
 6. Documentar build, migraciones, despliegue, health check, logs, rollback y recuperación de la base de datos.
-7. Desplegar primero un entorno de staging. Validar TLS, URL de aplicación, callback, acceso desde Admin, reinicio y rollback antes de usar producción.
+7. Construir la imagen desde `csv-import-doctor/` y revisar el contenido/configuración para confirmar que los secretos, la DB local y la sesión de navegador no se copiaron.
+8. Desplegar primero un entorno de staging. Validar TLS, URL de aplicación, callback, acceso desde Admin, reinicio y rollback antes de usar producción.
 
 **Criterio de salida:** staging accesible con HTTPS, URL/callback coherentes, secretos fuera del código, base de datos durable y rollback comprobable.
 
