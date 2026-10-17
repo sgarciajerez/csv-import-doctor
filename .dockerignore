@@ -1,0 +1,19 @@
+# Keep the Docker context free of local installs, build output, and credentials.
+**/node_modules
+**/build
+**/.cache
+**/.shopify
+**/.shopify.lock
+/.env*
+**/.env*
+**/prisma/dev.sqlite
+**/prisma/dev.sqlite-*
+**/playwright/.auth
+**/playwright/test-results
+**/playwright/playwright-report
+**/test-results
+**/test-results/**
+**/playwright-report
+.git
+.github
+docs

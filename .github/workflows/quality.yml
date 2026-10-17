@@ -64,18 +64,16 @@ jobs:
       - name: Create sensitive-file canaries for .dockerignore
         run: |
           printf '%s\n' 'docker-ignore-canary' > .env.docker-ignore-check
-          mkdir -p .shopify playwright/.auth prisma
-          printf '%s\n' 'docker-ignore-canary' > .shopify/local-state
-          printf '%s\n' 'docker-ignore-canary' > prisma/dev.sqlite
-          printf '%s\n' 'docker-ignore-canary' > playwright/.auth/state.json
-        working-directory: csv-import-doctor
+          mkdir -p csv-import-doctor/.shopify csv-import-doctor/playwright/.auth csv-import-doctor/prisma
+          printf '%s\n' 'docker-ignore-canary' > csv-import-doctor/.shopify/local-state
+          printf '%s\n' 'docker-ignore-canary' > csv-import-doctor/prisma/dev.sqlite
+          printf '%s\n' 'docker-ignore-canary' > csv-import-doctor/playwright/.auth/state.json
       - name: Build Docker image
-        run: docker build --tag csv-import-doctor:ci .
-        working-directory: csv-import-doctor
+        run: docker build --file csv-import-doctor/Dockerfile --tag csv-import-doctor:ci .
       - name: Check sensitive local files are absent from image
         run: >-
           docker run --rm --entrypoint sh csv-import-doctor:ci -c
           'test ! -e /app/.env.docker-ignore-check &&
-          test ! -e /app/.shopify/local-state &&
-          test ! -e /app/prisma/dev.sqlite &&
-          test ! -e /app/playwright/.auth/state.json'
+          test ! -e /app/csv-import-doctor/.shopify/local-state &&
+          test ! -e /app/csv-import-doctor/prisma/dev.sqlite &&
+          test ! -e /app/csv-import-doctor/playwright/.auth/state.json'
