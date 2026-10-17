@@ -25,7 +25,7 @@ Este juicio no significa que hoy se pueda ofrecer a comerciantes: faltan los gat
 
 ## Estado observado del repositorio
 
-- `csv-import-doctor/shopify.app.toml` aún contiene `https://example.com` para `application_url` y `redirect_urls`. El TOML no contiene una clave `distribution`; se debe verificar el método seleccionado en Shopify Dev Dashboard y no inferirlo del nombre de la app o de la configuración local.
+- `csv-import-doctor/shopify.app.toml` aún usa `https://example.com` como host de `application_url` y `redirect_urls`. La ruta OAuth se alineó con `authPathPrefix: "/auth"` en `app/shopify.server.ts` y la guía oficial: `/auth/callback`; sustituir el host al preparar un entorno real. El TOML no contiene una clave `distribution`; además, `app/shopify.server.ts` fija `AppDistribution.AppStore`. Verificar en Dev Dashboard el canal de la app de producción y confirmar que coincide con ese modo antes de instalarla.
 - `csv-import-doctor/prisma/schema.prisma` usa SQLite (`file:dev.sqlite`). En producción se requiere un volumen realmente persistente con una estrategia de copia de seguridad y una sola instancia compatible, o una base de datos administrada adecuada al hosting.
 - Los scopes de Admin API están vacíos, coherentes con el análisis local actual. No añadir scopes para aparentar una integración.
 - El perfil `.67` y sus pruebas unitarias se han implementado. Core (108 pruebas), lint, typecheck y build pasaron en la ejecución local anterior. La suite E2E autenticada completa pasó el 2026-10-16 (1/1); incluye el flujo principal, el aviso `.67` con 10.001 variantes candidatas, progreso en archivo de 20 MB y diagnóstico del límite de 100.001 filas. Resultado detallado en `docs/PROGRESS.md`.
@@ -44,8 +44,8 @@ Shopify advierte que el método de distribución no se puede cambiar después de
 
 **Cómo encararlo:**
 
-1. Confirmar en Shopify Dev Dashboard cuál es el método de distribución asociado a la app actual.
-2. Decidir si el primer destino será una tienda piloto acordada mediante distribución personalizada o una salida pública a múltiples tiendas.
+1. Confirmar en Shopify Dev Dashboard cuál es el método de distribución asociado a la app prevista para producción. Shopify recomienda separar el registro de producción del de desarrollo; no reutilizar el client ID de desarrollo por inercia.
+2. Decidir si el primer destino será una tienda piloto acordada mediante distribución personalizada o una salida pública a múltiples tiendas. Si se mantiene `AppDistribution.AppStore` en `shopify.server.ts`, confirmar que la app registrada usa distribución pública; si se elige distribución personalizada, ajustar el modo del servidor siguiendo la guía oficial y probarlo antes del despliegue.
 3. Registrar la decisión, el alcance de tiendas y si el piloto será gratuito.
 4. Si el destino es público, tratar la elegibilidad de App Store como un gate independiente antes de invertir en listing y billing.
 5. No cambiar distribución ni crear una configuración de producción hasta haber confirmado la decisión.
@@ -61,7 +61,7 @@ Fuente: [Shopify: distribución de apps](https://shopify.dev/docs/apps/launch/di
 **Cómo encararlo:**
 
 1. Elegir hosting operable con HTTPS y dominio estable; comprobar que la plataforma soporta el modo de ejecución de React Router y el almacenamiento elegido.
-2. Registrar `application_url` y el callback OAuth con las URLs exactas del despliegue. No conservar `example.com` en la configuración de producción.
+2. Registrar `application_url` con el origen exacto del despliegue y `redirect_urls` con `https://<dominio>/auth/callback`, consistente con `authPathPrefix: "/auth"`. No conservar `example.com` en la configuración de producción.
 3. Mantener configuración separada para desarrollo y producción, sin sobrescribir las URLs locales/túnel.
 4. Inventariar las variables y secretos que necesita la app. Cargarlos en el gestor de secretos del hosting; no subir valores reales al repositorio ni a logs.
 5. Resolver SQLite antes del piloto: demostrar persistencia a través de reinicio y redeploy en un único volumen durable, con copia de seguridad y restauración probadas; o migrar a una base de datos administrada y validar las migraciones Prisma.
@@ -70,7 +70,7 @@ Fuente: [Shopify: distribución de apps](https://shopify.dev/docs/apps/launch/di
 
 **Criterio de salida:** staging accesible con HTTPS, URL/callback coherentes, secretos fuera del código, base de datos durable y rollback comprobable.
 
-Fuentes: [Shopify: desplegar a un proveedor de hosting](https://shopify.dev/docs/apps/launch/deployment/deploy-to-hosting-service) y [Shopify: configurar base de datos](https://shopify.dev/docs/apps/launch/deployment/deploy-to-hosting-service#step-3-set-up-your-database).
+Fuentes: [Shopify: desplegar a un proveedor de hosting](https://shopify.dev/docs/apps/launch/deployment/deploy-to-hosting-service) y [Shopify: despliegue](https://shopify.dev/docs/apps/launch/deployment).
 
 ### 3. Cerrar las pruebas E2E y congelar funciones
 
@@ -145,13 +145,12 @@ Fuentes: [Requisitos de Shopify App Store](https://shopify.dev/docs/apps/launch/
 
 ## Orden recomendado
 
-1. Resolver la E2E `.67` y completar el cierre funcional del código.
-2. Confirmar canal de distribución en Dev Dashboard antes de fijar la configuración productiva.
-3. Preparar hosting, dominio, URLs, secretos y base de datos durable en staging.
-4. Probar instalación, autenticación, sesiones y webhooks en staging.
-5. Completar privacidad y soporte antes de invitar al piloto.
-6. Hacer revisión de rendimiento/accesibilidad y recoger feedback del piloto.
-7. Si se decide App Store, cerrar elegibilidad, listing, pricing y review como ruta de publicación separada.
+1. Confirmar la app de producción y su canal de distribución en Dev Dashboard antes de fijar su configuración.
+2. Preparar hosting, dominio, URLs, secretos y base de datos durable en staging.
+3. Probar instalación, autenticación, sesiones y webhooks en staging.
+4. Completar privacidad y soporte antes de invitar al piloto.
+5. Hacer revisión de rendimiento/accesibilidad y recoger feedback del piloto.
+6. Cerrar elegibilidad, listing, pricing y review para la publicación en App Store.
 
 ## Registro de decisiones y evidencia
 

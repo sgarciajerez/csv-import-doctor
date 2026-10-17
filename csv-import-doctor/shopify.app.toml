@@ -25,7 +25,7 @@ scopes = ""
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://example.com/auth/callback" ]
 
 [build]
 include_config_on_deploy = true

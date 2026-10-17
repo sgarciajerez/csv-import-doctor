@@ -51,7 +51,7 @@ Shopify puede añadir o cambiar requisitos. Volver a obtener la lista canónica 
 
 **Por qué importa:** Shopify requiere que el tráfico entre el navegador y la aplicación esté protegido con un certificado TLS válido.
 
-**Qué se encontró:** `csv-import-doctor/shopify.app.toml` aún contiene `application_url = "https://example.com"` y `redirect_urls = ["https://example.com/api/auth"]`. No hay dominio ni despliegue de producción configurados; la URL temporal de desarrollo no demuestra que la versión publicada vaya a tener TLS operativo.
+**Qué se encontró (revisión inicial):** `csv-import-doctor/shopify.app.toml` contiene `application_url = "https://example.com"`; la ruta de callback inicialmente registrada como `/api/auth` se corrigió a `/auth/callback` el 2026-10-17 para coincidir con `authPathPrefix: "/auth"` del servidor y la guía oficial de React Router. No hay dominio ni despliegue de producción configurados; la URL temporal de desarrollo no demuestra que la versión publicada vaya a tener TLS operativo.
 
 ## Grupos omitidos
 
