@@ -1,7 +1,7 @@
 # Guía de cierre técnico e integración con Shopify
 
 **Estado:** plan de trabajo activo; no equivale a una decisión de distribución ni a autorización para publicar.
-**Revisado:** 2026-10-16.
+**Revisado:** 2026-10-17.
 **Referencia normativa del producto:** [`docs/REQUIREMENTS_10.md`](../REQUIREMENTS_10.md).
 
 ## Objetivo y criterio de transición
